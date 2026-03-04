@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+# 🚗 Repo Ridez
 
-## Project info
+A shared district for GitHub Repos. See your repositories as low-poly collectible cars in a shared 3D district.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🌟 Features
 
-## How can I edit this code?
+- **3D District**: Explore a shared world where every GitHub user has their own space.
+- **Car Representations**: Each repository is represented as a unique car based on its size, language, and popularity.
+- **Social Interaction**: Give kudos, visit other sections, and see live activity.
+- **Realtime Presence**: See how many citizens are viewing the district right now.
+- **Leaderboard**: Compete for the top spot in the "City Hall" based on your total GitHub stars.
 
-There are several ways of editing your application.
+## 🛠️ Technology Stack
 
-**Use Lovable**
+- **Frontend**: Vite, React, Three.js (@react-three/fiber, @react-three/drei), Tailwind CSS.
+- **Backend**: Supabase (Database, Auth, Realtime).
+- **Icons**: Lucide React.
+- **Deployment**: Vercel / GitHub Pages.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🚀 Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v18+)
+- npm
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone the repository**
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd repo-ridez
+   ```
 
-Follow these steps:
+2. **Install dependencies**
+   ```sh
+   npm i
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Environment Setup**
+   Create a `.env` file in the root directory and add your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. **Start the development server**
+   ```sh
+   npm run dev
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Database Setup
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Run the SQL in `supabase/schema.sql` within your Supabase SQL Editor to set up the necessary tables, RLS policies, and functions.
 
-**Edit a file directly in GitHub**
+## 📜 District Rules
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Authenticated Parking**: Only users who sign in with GitHub are parked in the district.
+- **Permanent Spots**: Once you park, your spot remains in the district.
+- **Kudos**: You can give kudos to other citizens once per day.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Built with ❤️ for the GitHub community.
