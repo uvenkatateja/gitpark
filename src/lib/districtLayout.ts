@@ -43,6 +43,7 @@ export interface UserData {
     cars: CarProps[];
     fetchedAt: number;
     isClaimed?: boolean;
+    rank?: number | null;
 }
 
 export interface UserSection {
@@ -54,6 +55,7 @@ export interface UserSection {
     cars: PositionedCar[];
     sectionIndex: number;
     isClaimed: boolean;
+    rank?: number | null;
 }
 
 export interface DistrictLayout {
@@ -103,6 +105,7 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
             cars: positioned,
             sectionIndex: i,
             isClaimed: !!user.isClaimed,
+            rank: user.rank,
         });
 
         minX = Math.min(minX, cx - sectionW / 2);

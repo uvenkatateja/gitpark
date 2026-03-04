@@ -11,13 +11,13 @@ function formatFeedEvent(event: FeedEvent): string {
 
     switch (event.event_type) {
         case 'parked':
-            return `🚗 ${actor} just parked their repo-ridez! (${event.metadata.repo_count || 0} cars, ${event.metadata.stars || 0} stars)`;
+            return `🚗 ${actor} just parked in the district! (${event.metadata.stars || 0} stars collected)`;
         case 'claimed':
-            return `🅿️ ${actor} just CLAIMED their parking section!`;
+            return `👑 ${actor} just CLAIMED their spot permanently!`;
         case 'visited':
-            return `👀 ${actor} visited ${target}'s section.`;
+            return `👀 ${actor} is checking out ${target}'s repo-ridez.`;
         case 'starred':
-            return `⭐ ${actor} starred ${target}'s repo.`;
+            return `❤️ ${actor} gave kudos to ${target}!`;
         default:
             return `✨ ${actor} did something in the district...`;
     }

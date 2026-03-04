@@ -2,9 +2,12 @@
  * database.types.ts — Supabase Database type definitions for Repo Ridez
  *
  * Type definitions for the Supabase tables:
- *   "parkers" — users who have parked repos
- *   "activity_feed" — event log
- *   "visits" — section visit tracking
+ *   "parkers"          — users who have parked repos
+ *   "activity_feed"    — event log
+ *   "visits"           — section visit tracking
+ *   "search_requests"  — rate limiting (10 new lookups/hr per user)
+ *   "parker_kudos"     — social interactions (1/day)
+ *   "district_stats"   — global counters singleton
  */
 
 export interface Database {
@@ -24,11 +27,14 @@ export interface Database {
                     total_forks: number;
                     primary_language: string | null;
                     top_repos: any[];
+                    rank: number | null;
                     claimed: boolean;
                     claimed_by: string | null;       // Supabase auth user UUID
                     claimed_at: string | null;
                     visit_count: number;
+                    kudos_count: number;
                     last_visited_at: string | null;
+                    fetched_at: string;
                     created_at: string;
                     updated_at: string;
                 };
@@ -43,11 +49,14 @@ export interface Database {
                     total_forks?: number;
                     primary_language?: string | null;
                     top_repos?: any[];
+                    rank?: number | null;
                     claimed?: boolean;
                     claimed_by?: string | null;
                     claimed_at?: string | null;
                     visit_count?: number;
+                    kudos_count?: number;
                     last_visited_at?: string | null;
+                    fetched_at?: string;
                 };
                 Update: Partial<Database['public']['Tables']['parkers']['Insert']>;
             };
@@ -87,10 +96,62 @@ export interface Database {
                 };
                 Update: Partial<Database['public']['Tables']['visits']['Insert']>;
             };
+
+            /** Rate limiting — 10 new profile lookups per hour per user */
+            search_requests: {
+                Row: {
+                    id: number;
+                    user_id: string;          // auth.users UUID
+                    github_login: string;
+                    created_at: string;
+                };
+                Insert: {
+                    user_id: string;
+                    github_login: string;
+                };
+                Update: never;               // Never updated, insert-only
+            };
+
+            /** Social interactions — kudos tracking */
+            parker_kudos: {
+                Row: {
+                    giver_id: number;
+                    target_id: number;
+                    given_date: string;
+                    created_at: string;
+                };
+                Insert: {
+                    giver_id: number;
+                    target_id: number;
+                    given_date?: string;
+                };
+                Update: never;
+            };
+
+            /** Global counters singleton */
+            district_stats: {
+                Row: {
+                    id: number;               // always 1
+                    total_parkers: number;
+                    total_stars: number;
+                    updated_at: string;
+                };
+                Insert: never;               // Seeded by migration
+                Update: never;               // Updated by recalculate_ranks()
+            };
         };
 
         Views: Record<string, never>;
-        Functions: Record<string, never>;
+        Functions: {
+            recalculate_ranks: {
+                Args: Record<string, never>;
+                Returns: void;
+            };
+            increment_kudos_count: {
+                Args: { target_p_id: number };
+                Returns: void;
+            };
+        };
         Enums: Record<string, never>;
     };
 }

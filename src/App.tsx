@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import LotPage from "./pages/LotPage";
 import ProfilePage from "./pages/ProfilePage";
 import ComparePage from "./pages/ComparePage";
+import LeaderboardPage from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/lot/:username" element={<LotPage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

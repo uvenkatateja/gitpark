@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchGitHubUser, fetchGitHubRepos, GitHubUser } from '@/lib/github';
+import { fetchGitHubUser, fetchGitHubRepos, type GitHubUser, type GitHubRepo } from '@/lib/github';
 import { repoToCar } from '@/lib/repoToCar';
 import { ParkingLot } from '@/components/3d/ParkingLot';
-import { CarProps } from '@/types/car';
-import LoadingScreen, { LoadingStage } from '@/components/LoadingScreen';
+import { type CarProps } from '@/types/car';
+import LoadingScreen, { type LoadingStage } from '@/components/LoadingScreen';
 import { AlertTriangle, ArrowLeft, User } from 'lucide-react';
+import { getParker, incrementVisit } from '@/lib/parkerService';
 
 export default function LotPage() {
   const { username } = useParams<{ username: string }>();
@@ -25,16 +26,41 @@ export default function LotPage() {
       try {
         // Stage 1: Connect
         setStage('connect');
-        const u = await fetchGitHubUser(username);
+
+        // Try fetching from Supabase first
+        const parker = await getParker(username);
+        let u: GitHubUser;
+        let repos: GitHubRepo[];
+
+        if (parker) {
+          // Use cached data
+          u = {
+            login: parker.github_login,
+            id: 0, // not strictly needed for UI here
+            avatar_url: parker.avatar_url ?? '',
+            name: parker.display_name,
+            bio: null,
+            public_repos: parker.public_repos,
+          } as any;
+          repos = parker.top_repos || [];
+
+          // Increment visit in background
+          incrementVisit(username);
+        } else {
+          // Fallback to GitHub (wont save to Supabase because it's unauthenticated here)
+          u = await fetchGitHubUser(username);
+          repos = await fetchGitHubRepos(username);
+        }
+
         setUser(u);
 
         // Stage 2: Load repos
         setStage('repos');
-        const repos = await fetchGitHubRepos(username);
+        // Repos already loaded above
 
         // Stage 3: Build cars
         setStage('build');
-        await new Promise((r) => setTimeout(r, 400)); // small artificial delay for feel
+        await new Promise((r) => setTimeout(r, 400));
         const mapped = repos.map((r, i) => repoToCar(r, i < 6));
         setCars(mapped);
 

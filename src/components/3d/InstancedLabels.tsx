@@ -65,22 +65,51 @@ function createSectionAtlas(sections: UserSection[]): THREE.CanvasTexture {
     ctx.textBaseline = 'middle';
 
     for (let i = 0; i < count; i++) {
+        const s = sections[i];
         const y = i * ATLAS_ROW_H + ATLAS_ROW_H / 2;
+
+        const rankText = s.rank ? `#${s.rank} ` : '';
+        const userText = `@${s.username}`;
+        const fullText = rankText + userText;
+
+        ctx.font = 'bold 32px monospace';
+        const tw = ctx.measureText(fullText).width;
+        const pad = 28;
+
+        // Colors base on rank/claimed
+        const isFirst = s.rank === 1;
+        const mainColor = isFirst ? '#facc15' : '#ffd700';
+        const bgColor = s.isClaimed ? 'rgba(20, 15, 40, 0.9)' : 'rgba(10, 10, 20, 0.75)';
+
         // Background pill
-        const text = `@${sections[i].username}`;
-        const tw = ctx.measureText(text).width;
-        const pad = 24;
-        ctx.fillStyle = 'rgba(10, 10, 20, 0.75)';
-        roundRect(ctx, ATLAS_W / 2 - tw / 2 - pad, y - 22, tw + pad * 2, 44, 6);
+        ctx.fillStyle = bgColor;
+        roundRect(ctx, ATLAS_W / 2 - tw / 2 - pad, y - 24, tw + pad * 2, 48, 8);
         ctx.fill();
+
         // Border
-        ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 2;
-        roundRect(ctx, ATLAS_W / 2 - tw / 2 - pad, y - 22, tw + pad * 2, 44, 6);
+        ctx.strokeStyle = s.isClaimed ? mainColor : 'rgba(255, 215, 0, 0.3)';
+        ctx.lineWidth = s.isClaimed ? 3 : 1.5;
+        roundRect(ctx, ATLAS_W / 2 - tw / 2 - pad, y - 24, tw + pad * 2, 48, 8);
         ctx.stroke();
+
+        // King Crown for #1 or Claimed
+        if (s.isClaimed || isFirst) {
+            ctx.fillStyle = mainColor;
+            ctx.font = '28px serif';
+            ctx.fillText('👑', ATLAS_W / 2 - tw / 2 - pad - 10, y + 2);
+        }
+
         // Text
-        ctx.fillStyle = '#ffd700';
-        ctx.fillText(text, ATLAS_W / 2, y + 1);
+        ctx.font = 'bold 30px monospace';
+        ctx.fillStyle = mainColor;
+        ctx.fillText(fullText, ATLAS_W / 2, y + 2);
+
+        // Small "CLAIMED" tag if applicable
+        if (s.isClaimed) {
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillStyle = mainColor;
+            ctx.fillText('RESIDENT', ATLAS_W / 2, y + 20);
+        }
     }
 
     const tex = new THREE.CanvasTexture(canvas);
