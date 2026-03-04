@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { getSupabase } from './supabase';
+import { getSupabase, isSupabaseConfigured } from './supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
@@ -53,13 +53,23 @@ export function useAuth() {
     }, []);
 
     const signIn = useCallback(async () => {
+        if (!isSupabaseConfigured()) {
+            alert('Supabase is not configured yet! Please create a .env file with your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+            return;
+        }
+
         const supabase = getSupabase();
-        await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
             options: {
                 redirectTo: `${window.location.origin}/`,
             },
         });
+
+        if (error) {
+            console.error('[Auth] Sign In Error:', error.message);
+            alert(`Sign in error: ${error.message}\n\nMake sure your Site URL in Supabase Auth settings matches ${window.location.origin}`);
+        }
     }, []);
 
     const signOut = useCallback(async () => {
