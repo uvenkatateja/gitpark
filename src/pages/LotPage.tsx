@@ -1,42 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchGitHubUser, fetchGitHubRepos, GitHubUser, GitHubRepo } from '@/lib/github';
+import { fetchGitHubUser, fetchGitHubRepos, GitHubUser } from '@/lib/github';
 import { repoToCar } from '@/lib/repoToCar';
 import { ParkingLot } from '@/components/3d/ParkingLot';
 import { CarProps } from '@/types/car';
-import { Loader2, AlertTriangle, ArrowLeft, User } from 'lucide-react';
+import LoadingScreen, { LoadingStage } from '@/components/LoadingScreen';
+import { AlertTriangle, ArrowLeft, User } from 'lucide-react';
 
 export default function LotPage() {
   const { username } = useParams<{ username: string }>();
   const [cars, setCars] = useState<CarProps[]>([]);
   const [user, setUser] = useState<GitHubUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stage, setStage] = useState<LoadingStage>('connect');
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!username) return;
-    setLoading(true);
+    setStage('connect');
     setError(null);
+    setReady(false);
 
-    Promise.all([fetchGitHubUser(username), fetchGitHubRepos(username)])
-      .then(([u, repos]) => {
+    (async () => {
+      try {
+        // Stage 1: Connect
+        setStage('connect');
+        const u = await fetchGitHubUser(username);
         setUser(u);
-        // First 6 repos are "pinned" (most recently updated)
+
+        // Stage 2: Load repos
+        setStage('repos');
+        const repos = await fetchGitHubRepos(username);
+
+        // Stage 3: Build cars
+        setStage('build');
+        await new Promise((r) => setTimeout(r, 400)); // small artificial delay for feel
         const mapped = repos.map((r, i) => repoToCar(r, i < 6));
         setCars(mapped);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [username]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-background gap-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="font-pixel text-sm text-muted-foreground">Loading {username}'s lot...</p>
-      </div>
-    );
-  }
+        // Stage 4: Parking
+        setStage('park');
+        await new Promise((r) => setTimeout(r, 500));
+
+        // Done
+        setStage('done');
+        await new Promise((r) => setTimeout(r, 350));
+        setReady(true);
+      } catch (e: any) {
+        setError(e.message);
+      }
+    })();
+  }, [username]);
 
   if (error) {
     return (
@@ -46,11 +60,18 @@ export default function LotPage() {
         <p className="text-muted-foreground text-sm text-center max-w-sm">
           No cars registered under "{username}". {error}
         </p>
-        <Link to="/" className="bg-primary text-primary-foreground font-pixel text-xs px-4 py-2 rounded hover:opacity-90 transition-opacity">
+        <Link
+          to="/"
+          className="bg-primary text-primary-foreground font-pixel text-xs px-4 py-2 rounded hover:opacity-90 transition-opacity"
+        >
           Back to Home
         </Link>
       </div>
     );
+  }
+
+  if (!ready) {
+    return <LoadingScreen stage={stage} username={username || ''} />;
   }
 
   return (
