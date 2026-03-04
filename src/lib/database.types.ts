@@ -1,5 +1,5 @@
 /**
- * database.types.ts — Supabase Database type definitions for Repo Ridez
+ * database.types.ts — Supabase Database type definitions for GitPark
  *
  * Type definitions for the Supabase tables:
  *   "parkers"          — users who have parked repos

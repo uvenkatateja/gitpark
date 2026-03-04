@@ -1,7 +1,7 @@
 /**
- * useAuth.ts — GitHub OAuth auth hook for Repo Ridez
+ * useAuth.ts — GitHub OAuth auth hook for GitPark
  *
- * GitHub OAuth auth hook for Repo Ridez.
+ * GitHub OAuth auth hook for GitPark.
  *   1. User clicks "Sign in with GitHub"
  *   2. Redirect to Supabase OAuth → GitHub → callback URL
  *   3. Supabase handles token exchange via detectSessionInUrl

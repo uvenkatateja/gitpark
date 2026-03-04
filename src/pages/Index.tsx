@@ -325,7 +325,7 @@ export default function DistrictPage() {
                 <Car className="w-5 h-5 text-primary" />
               </div>
               <span className="font-pixel text-sm text-primary text-glow-yellow hidden sm:inline tracking-widest uppercase">
-                REPO RIDEZ
+                GITPARK
               </span>
             </div>
 

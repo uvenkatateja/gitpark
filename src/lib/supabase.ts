@@ -1,7 +1,7 @@
 /**
- * supabase.ts — Supabase client for Repo Ridez
+ * supabase.ts — Supabase client for GitPark
  *
- * Supabase client singleton for Repo Ridez.
+ * Supabase client singleton for GitPark.
  * Uses plain createClient() without Database generics for simplicity.
  *
  * Environment variables (set in .env):
@@ -25,7 +25,7 @@ export function getSupabase(): SupabaseClient {
 
     if (!url || !key) {
         console.warn(
-            '[Repo Ridez] Supabase not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env'
+            '[GitPark] Supabase not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env'
         );
     }
 

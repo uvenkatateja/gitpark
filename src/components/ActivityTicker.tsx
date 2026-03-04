@@ -36,7 +36,7 @@ export default function ActivityTicker({ sections }: ActivityTickerProps) {
 
         // Fallback: simple welcome messages if feed is empty
         return [
-            { id: 'w1', text: 'Welcome to the Repo Ridez Shared District!' },
+            { id: 'w1', text: 'Welcome to the GitPark Shared District!' },
             { id: 'w2', text: 'Search any GitHub user to see their repos as low-poly cars.' },
             { id: 'w3', text: 'Sign in with GitHub to claim your own parking space.' },
             { id: 'w4', text: 'Navigate the lot with your mouse or touch.' },

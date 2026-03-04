@@ -65,7 +65,7 @@ export default function LoadingScreen({ stage, username }: LoadingScreenProps) {
 
             {/* Title */}
             <h2 className="font-pixel text-lg text-primary mb-2 text-glow-yellow">
-                REPO RIDEZ
+                GITPARK
             </h2>
             <p className="font-pixel text-xs text-muted-foreground mb-8">
                 Loading {username}'s parking lot

@@ -15,7 +15,7 @@
  *  - directionArrow: painted arrow on road surface
  *  - overheadLamp:   tall parking lot light
  *  - curb:           raised curb at section edges
- *  - entrySign:      "REPO RIDEZ" sign at district center
+ *  - entrySign:      "GITPARK" sign at district center
  */
 
 import type { DistrictLayout, UserSection } from './districtLayout';

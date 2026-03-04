@@ -1,5 +1,5 @@
 -- ============================================================
--- Repo Ridez — Supabase Master Database Schema
+-- GitPark — Supabase Master Database Schema
 -- Version: 3.1 (Social Update)
 -- ============================================================
 

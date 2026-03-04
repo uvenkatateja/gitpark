@@ -1,4 +1,4 @@
-# 🚗 Repo Ridez
+# 🚗 GitPark
 
 A shared district for GitHub Repos. See your repositories as low-poly collectible cars in a shared 3D district.
 
