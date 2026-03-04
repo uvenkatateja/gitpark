@@ -42,6 +42,7 @@ export interface UserData {
     avatarUrl: string;
     cars: CarProps[];
     fetchedAt: number;
+    isClaimed?: boolean;
 }
 
 export interface UserSection {
@@ -52,6 +53,7 @@ export interface UserSection {
     depth: number;
     cars: PositionedCar[];
     sectionIndex: number;
+    isClaimed: boolean;
 }
 
 export interface DistrictLayout {
@@ -100,6 +102,7 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
             depth: sectionD,
             cars: positioned,
             sectionIndex: i,
+            isClaimed: !!user.isClaimed,
         });
 
         minX = Math.min(minX, cx - sectionW / 2);
@@ -113,27 +116,4 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
         allCars: sections.flatMap((s) => s.cars),
         bounds: { minX, maxX, minZ, maxZ },
     };
-}
-
-// ─── LocalStorage Cache ──────────────────────────────────────
-
-const CACHE_KEY = 'reporidez_district';
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-
-export function getCachedUsers(): UserData[] {
-    try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (!raw) return [];
-        const data = JSON.parse(raw) as UserData[];
-        const now = Date.now();
-        return data.filter((u) => now - u.fetchedAt < CACHE_TTL);
-    } catch {
-        return [];
-    }
-}
-
-export function setCachedUsers(users: UserData[]): void {
-    try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(users));
-    } catch { /* quota exceeded */ }
 }

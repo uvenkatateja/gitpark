@@ -23,6 +23,7 @@ export interface Database {
                     total_stars: number;
                     total_forks: number;
                     primary_language: string | null;
+                    top_repos: any[];
                     claimed: boolean;
                     claimed_by: string | null;       // Supabase auth user UUID
                     claimed_at: string | null;
@@ -41,6 +42,7 @@ export interface Database {
                     total_stars?: number;
                     total_forks?: number;
                     primary_language?: string | null;
+                    top_repos?: any[];
                     claimed?: boolean;
                     claimed_by?: string | null;
                     claimed_at?: string | null;

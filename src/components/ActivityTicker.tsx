@@ -1,85 +1,66 @@
 import { useMemo } from 'react';
-import type { UserSection } from '@/lib/districtLayout';
-
-interface ParkingEvent {
-    id: string;
-    text: string;
-    time: number;
-}
+import { useActivityFeed, type FeedEvent } from '@/lib/useActivityFeed';
 
 interface ActivityTickerProps {
-    sections: UserSection[];
+    sections?: any[]; // legacy fallback
 }
 
-function generateEvents(sections: UserSection[]): ParkingEvent[] {
-    const events: ParkingEvent[] = [];
+function formatFeedEvent(event: FeedEvent): string {
+    const actor = event.actor_login ? `@${event.actor_login}` : 'Someone';
+    const target = event.target_login ? `@${event.target_login}` : 'a section';
 
-    for (const section of sections) {
-        // Section added event
-        events.push({
-            id: `join-${section.username}`,
-            text: `🚗 @${section.username} parked ${section.cars.length} cars`,
-            time: Date.now(),
-        });
-
-        // Top starred car
-        const topStarCar = [...section.cars].sort((a, b) => b.stars - a.stars)[0];
-        if (topStarCar && topStarCar.stars > 0) {
-            events.push({
-                id: `star-${section.username}-${topStarCar.id}`,
-                text: `⭐ ${topStarCar.name} by @${section.username} — ${topStarCar.stars.toLocaleString()} stars`,
-                time: Date.now(),
-            });
-        }
-
-        // Fork count
-        const totalForks = section.cars.reduce((s, c) => s + c.forks, 0);
-        if (totalForks > 10) {
-            events.push({
-                id: `forks-${section.username}`,
-                text: `🔀 @${section.username}'s repos have ${totalForks.toLocaleString()} forks`,
-                time: Date.now(),
-            });
-        }
-
-        // Languages
-        const langs = new Set(section.cars.map((c) => c.language).filter(Boolean));
-        if (langs.size >= 3) {
-            events.push({
-                id: `lang-${section.username}`,
-                text: `💻 @${section.username} codes in ${[...langs].slice(0, 4).join(', ')}`,
-                time: Date.now(),
-            });
-        }
+    switch (event.event_type) {
+        case 'parked':
+            return `🚗 ${actor} just parked their repo-ridez! (${event.metadata.repo_count || 0} cars, ${event.metadata.stars || 0} stars)`;
+        case 'claimed':
+            return `🅿️ ${actor} just CLAIMED their parking section!`;
+        case 'visited':
+            return `👀 ${actor} visited ${target}'s section.`;
+        case 'starred':
+            return `⭐ ${actor} starred ${target}'s repo.`;
+        default:
+            return `✨ ${actor} did something in the district...`;
     }
-
-    // Shuffle deterministically
-    return events.sort((a, b) => {
-        let h = 0;
-        for (let i = 0; i < a.id.length; i++) h = ((h << 5) - h + a.id.charCodeAt(i)) | 0;
-        return h - b.id.charCodeAt(0);
-    });
 }
 
 export default function ActivityTicker({ sections }: ActivityTickerProps) {
-    const events = useMemo(() => generateEvents(sections), [sections]);
+    const { events } = useActivityFeed(true);
 
-    if (events.length < 1) return null;
+    const displayEvents = useMemo(() => {
+        if (events.length > 0) {
+            return events.map(e => ({
+                id: e.id,
+                text: formatFeedEvent(e)
+            }));
+        }
 
-    const duration = Math.max(30, events.length * 4);
+        // Fallback: simple welcome messages if feed is empty
+        return [
+            { id: 'w1', text: 'Welcome to the Repo Ridez Shared District!' },
+            { id: 'w2', text: 'Search any GitHub user to see their repos as low-poly cars.' },
+            { id: 'w3', text: 'Sign in with GitHub to claim your own parking space.' },
+            { id: 'w4', text: 'Navigate the lot with your mouse or touch.' },
+        ];
+    }, [events]);
+
+    const duration = Math.max(30, displayEvents.length * 5);
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-30 flex h-7 items-center border-t border-border/30 bg-card/90 backdrop-blur-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-30 flex h-8 items-center border-t border-white/5 bg-background/40 backdrop-blur-2xl">
+            <div className="flex items-center px-4 border-r border-white/5 h-full bg-primary/10">
+                <span className="font-pixel text-[9px] text-primary tracking-widest animate-pulse">LIVE FEED</span>
+            </div>
             <div className="min-w-0 flex-1 overflow-hidden">
                 <div
                     className="ticker-scroll flex whitespace-nowrap"
                     style={{ '--ticker-duration': `${duration}s` } as React.CSSProperties}
                 >
-                    {[...events, ...events].map((item, i) => (
+                    {[...displayEvents, ...displayEvents].map((item, i) => (
                         <span
                             key={`${item.id}-${i}`}
-                            className="mx-6 text-[10px] text-muted-foreground font-mono"
+                            className="mx-10 text-[10px] text-muted-foreground font-mono flex items-center gap-2"
                         >
+                            <span className="w-1 h-1 bg-primary/30 rounded-full" />
                             {item.text}
                         </span>
                     ))}

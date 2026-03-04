@@ -19,6 +19,7 @@ export interface ParkerRecord {
     total_stars: number;
     total_forks: number;
     primary_language: string | null;
+    top_repos: any[];
     claimed: boolean;
     visit_count: number;
 }
@@ -35,6 +36,7 @@ export async function upsertParker(data: {
     total_stars: number;
     total_forks: number;
     primary_language?: string | null;
+    top_repos?: any[];
 }): Promise<ParkerRecord | null> {
     if (!isSupabaseConfigured()) return null;
 
@@ -53,11 +55,12 @@ export async function upsertParker(data: {
                 total_stars: data.total_stars,
                 total_forks: data.total_forks,
                 primary_language: data.primary_language ?? null,
+                top_repos: data.top_repos ?? [],
                 updated_at: new Date().toISOString(),
             },
             { onConflict: 'github_login' },
         )
-        .select('id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, claimed, visit_count')
+        .select('id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, top_repos, claimed, visit_count')
         .single();
 
     if (error) {
@@ -66,6 +69,26 @@ export async function upsertParker(data: {
     }
 
     return parker as ParkerRecord;
+}
+
+// ─── Fetch All Parkers ──────────────────────────────────────
+
+export async function fetchAllParkers(): Promise<ParkerRecord[]> {
+    if (!isSupabaseConfigured()) return [];
+
+    const supabase = getSupabase();
+
+    const { data, error } = await supabase
+        .from('parkers')
+        .select('id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, top_repos, claimed, visit_count')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.warn('[Parker] Fetch all error:', error.message);
+        return [];
+    }
+
+    return (data || []) as ParkerRecord[];
 }
 
 // ─── Claim Section ──────────────────────────────────────────
@@ -124,7 +147,7 @@ export async function getParker(githubLogin: string): Promise<ParkerRecord | nul
 
     const { data } = await supabase
         .from('parkers')
-        .select('id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, claimed, visit_count')
+        .select('id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, top_repos, claimed, visit_count')
         .eq('github_login', githubLogin.toLowerCase())
         .maybeSingle();
 

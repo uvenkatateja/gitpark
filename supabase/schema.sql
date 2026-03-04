@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS parkers (
   total_stars   INT DEFAULT 0,
   total_forks   INT DEFAULT 0,
   primary_language TEXT,
+  top_repos     JSONB NOT NULL DEFAULT '[]'::jsonb,
   claimed       BOOLEAN DEFAULT FALSE,
   claimed_by    UUID REFERENCES auth.users(id),  -- Supabase auth user
   claimed_at    TIMESTAMPTZ,
