@@ -66,7 +66,18 @@ export default function LeaderboardPage() {
                                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                                         <Medal className={`w-8 h-8 ${rank === 1 ? 'text-primary' : rank === 2 ? 'text-gray-400' : 'text-orange-400'}`} />
                                     </div>
-                                    <img src={p.avatar_url ?? ''} className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-primary/20 p-1 group-hover:border-primary transition-all bg-background" />
+                                    <div className="relative mx-auto mb-4 w-20 h-20">
+                                        <img
+                                            src={p.avatar_url ?? ''}
+                                            onError={(e) => (e.currentTarget.src = `https://unavatar.io/github/${p.github_login}`)}
+                                            className="w-full h-full rounded-full border-2 border-primary/20 p-1 group-hover:border-primary transition-all bg-background object-cover"
+                                        />
+                                        {p.claimed && (
+                                            <div className="absolute -top-1 -right-1 bg-primary p-1 rounded-full shadow-lg border border-background">
+                                                <Crown className="w-3 h-3 text-primary-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
                                     <h3 className="font-pixel text-lg truncate mb-1">@{p.github_login}</h3>
                                     <div className="flex flex-col gap-1.5 opacity-80">
                                         <span className="flex items-center justify-center gap-1.5 text-primary text-xs font-pixel">
@@ -104,7 +115,11 @@ export default function LeaderboardPage() {
                                     {idx + 1}
                                 </div>
                                 <div className="col-span-1">
-                                    <img src={p.avatar_url ?? ''} className="w-10 h-10 rounded-xl border border-white/10 p-0.5 group-hover:scale-110 transition-transform bg-card" />
+                                    <img
+                                        src={p.avatar_url ?? ''}
+                                        onError={(e) => (e.currentTarget.src = `https://unavatar.io/github/${p.github_login}`)}
+                                        className="w-10 h-10 rounded-xl border border-white/10 p-0.5 group-hover:scale-110 transition-transform bg-card object-cover"
+                                    />
                                 </div>
                                 <div className="col-span-4 pl-4 flex flex-col">
                                     <span className="font-pixel text-sm group-hover:text-primary transition-colors flex items-center gap-2">

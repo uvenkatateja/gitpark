@@ -59,16 +59,23 @@ export async function fetchGitHubUser(username: string): Promise<GitHubUser> {
 export async function fetchGitHubRepos(username: string): Promise<GitHubRepo[]> {
   const allRepos: GitHubRepo[] = [];
   let page = 1;
-  const maxPages = 3; // Max 300 repos
+  const maxPages = 4; // Max 400 repos
 
   while (page <= maxPages) {
-    const repos = await cachedFetch<GitHubRepo[]>(
-      `https://api.github.com/users/${username}/repos?per_page=100&sort=updated&page=${page}`
-    );
-    allRepos.push(...repos);
-    if (repos.length < 100) break;
-    page++;
+    try {
+      const repos = await cachedFetch<GitHubRepo[]>(
+        `https://api.github.com/users/${username}/repos?type=all&per_page=100&sort=pushed&page=${page}`
+      );
+      if (!Array.isArray(repos)) break;
+      allRepos.push(...repos);
+      if (repos.length < 100) break;
+      page++;
+    } catch (e) {
+      console.warn(`[GitHub] Failed to fetch page ${page}:`, e);
+      break;
+    }
   }
 
+  // Filter out forks if preferred? No, let's keep them and mark them (isCrooked)
   return allRepos;
 }

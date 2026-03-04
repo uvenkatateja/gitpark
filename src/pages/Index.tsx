@@ -121,17 +121,23 @@ export default function DistrictPage() {
       const trimmed = (username || searchInput).trim().toLowerCase();
       if (!trimmed) return;
 
+      // 1. Check local state (fastest)
       const existingIdx = users.findIndex((u) => u.username.toLowerCase() === trimmed);
-      if (existingIdx >= 0) {
-        const section = generateDistrictLayout(users).sections[existingIdx];
-        setCameraTarget(section.center);
-        if (!isAuto) setSearchInput('');
-        setError(null);
-        return;
-      }
 
+      // 2. Load from DB (or if local but incomplete)
       const cachedParker = await getParker(trimmed);
-      if (cachedParker) {
+
+      // Smart Refresh Logic:
+      // If cached data exists but:
+      // - It has 0 repos (bug from earlier versions?)
+      // - It's older than 1 hour (stale)
+      // AND we are logged in, we perform a fresh fetch to fix the state.
+      const isStale = cachedParker && (
+        (cachedParker.public_repos === 0 && !cachedParker.github_login.includes('hi')) || // hi? no HI is a user
+        new Date(cachedParker.created_at).getTime() < (Date.now() - 60 * 60 * 1000)
+      );
+
+      if (cachedParker && !isStale) {
         const cars = (cachedParker.top_repos || []).map((r: any, i: number) =>
           repoToCar(r, i < 6),
         );
@@ -143,13 +149,20 @@ export default function DistrictPage() {
           isClaimed: cachedParker.claimed,
           rank: cachedParker.rank,
         };
-        setUsers((prev) => {
-          const next = [...prev, userData];
-          const newLayout = generateDistrictLayout(next);
-          const newSection = newLayout.sections[newLayout.sections.length - 1];
-          setCameraTarget(newSection.center);
-          return next;
-        });
+
+        if (existingIdx === -1) {
+          setUsers((prev) => {
+            const next = [...prev, userData];
+            const newLayout = generateDistrictLayout(next);
+            const newSection = newLayout.sections[newLayout.sections.length - 1];
+            setCameraTarget(newSection.center);
+            return next;
+          });
+        } else {
+          const section = generateDistrictLayout(users).sections[existingIdx];
+          setCameraTarget(section.center);
+        }
+
         if (!isAuto) setSearchInput('');
         setError(null);
         return;
