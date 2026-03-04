@@ -5,9 +5,8 @@
  * Uses plain Supabase queries with atomic claim pattern.
  *
  * Key district rules:
- *   - Only authenticated users can INSERT/UPDATE
- *   - Rate limit: 10 new profile lookups per hour per user
- *   - Profiles already in DB = unlimited (free cache hits)
+ *   - Only logged-in GitHub users are parked in the district
+ *   - Profiles update on every sign-in to ensure fresh repo data
  */
 
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -50,47 +49,6 @@ export async function getParker(githubLogin: string): Promise<ParkerRecord | nul
     return data as ParkerRecord | null;
 }
 
-// ─── Rate Limit Check ───────────────────────────────────────
-// 10 new profile lookups per hour per authenticated user
-
-export async function checkSearchRateLimit(userId: string): Promise<{
-    allowed: boolean;
-    remaining: number;
-}> {
-    if (!isSupabaseConfigured()) return { allowed: true, remaining: 10 };
-
-    const supabase = getSupabase();
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-
-    const { count, error } = await supabase
-        .from('search_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .gte('created_at', oneHourAgo);
-
-    if (error) {
-        console.warn('[RateLimit] Check error:', error.message);
-        return { allowed: true, remaining: 10 };
-    }
-
-    const used = count ?? 0;
-    const limit = 10;
-
-    return {
-        allowed: used < limit,
-        remaining: Math.max(0, limit - used),
-    };
-}
-
-async function recordSearchRequest(userId: string, githubLogin: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-    const supabase = getSupabase();
-    await supabase.from('search_requests').insert({
-        user_id: userId,
-        github_login: githubLogin.toLowerCase(),
-    });
-}
-
 // ─── Upsert Parker (Auth Required) ─────────────────────────
 
 export async function upsertParker(
@@ -113,10 +71,6 @@ export async function upsertParker(
     const supabase = getSupabase();
     const existing = await getParker(data.github_login);
     const isNew = !existing;
-
-    if (isNew && authUserId) {
-        await recordSearchRequest(authUserId, data.github_login);
-    }
 
     const { data: parker, error } = await supabase
         .from('parkers')

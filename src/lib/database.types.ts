@@ -97,21 +97,6 @@ export interface Database {
                 Update: Partial<Database['public']['Tables']['visits']['Insert']>;
             };
 
-            /** Rate limiting — 10 new profile lookups per hour per user */
-            search_requests: {
-                Row: {
-                    id: number;
-                    user_id: string;          // auth.users UUID
-                    github_login: string;
-                    created_at: string;
-                };
-                Insert: {
-                    user_id: string;
-                    github_login: string;
-                };
-                Update: never;               // Never updated, insert-only
-            };
-
             /** Social interactions — kudos tracking */
             parker_kudos: {
                 Row: {

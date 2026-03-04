@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Loader2, X, Car, Github, LogOut, ChevronRight, Shield, Trophy, Activity, Globe, Star } from 'lucide-react';
+import { Search, Loader2, X, Car, Github, LogOut, ChevronRight, Trophy, Activity, Globe, Star } from 'lucide-react';
 import { fetchGitHubUser, fetchGitHubRepos } from '@/lib/github';
 import { repoToCar } from '@/lib/repoToCar';
 import {
@@ -18,7 +18,6 @@ import {
   upsertParker,
   claimSection,
   fetchAllParkers,
-  checkSearchRateLimit,
   getParker,
   fetchDistrictStats,
   type ParkerRecord,
@@ -27,7 +26,6 @@ import {
 // ─── Popular Users ───────────────────────────────────────────
 
 const SUGGESTIONS = ['torvalds', 'sindresorhus', 'tj', 'gaearon', 'yyx990803'];
-const HOURLY_SEARCH_LIMIT = 10;
 
 // ─── Main Page ───────────────────────────────────────────────
 
@@ -47,10 +45,9 @@ export default function DistrictPage() {
   const { user, githubLogin, signIn, signOut, loading: authLoading } = useAuth();
   const { count: liveCount, status: liveStatus } = useLiveUsers();
 
-  // Claim + rate limit state
+  // Claim state
   const [claiming, setClaiming] = useState(false);
   const [myParkerRecord, setMyParkerRecord] = useState<ParkerRecord | null>(null);
-  const [searchesRemaining, setSearchesRemaining] = useState(HOURLY_SEARCH_LIMIT);
 
   // ── Load All Parkers from DB ──
   const loadWorld = useCallback(async () => {
@@ -88,15 +85,6 @@ export default function DistrictPage() {
     loadWorld();
   }, [loadWorld]);
 
-  // ── Check rate limit on login ──
-  useEffect(() => {
-    if (user?.id) {
-      checkSearchRateLimit(user.id).then(({ remaining }) => {
-        setSearchesRemaining(remaining);
-      });
-    }
-  }, [user?.id]);
-
   // ── Layout ──
   const layout = useMemo<DistrictLayout>(() => generateDistrictLayout(users), [users]);
 
@@ -124,7 +112,7 @@ export default function DistrictPage() {
       // 1. Check local state (fastest)
       const existingIdx = users.findIndex((u) => u.username.toLowerCase() === trimmed);
 
-      // 2. Load from DB (or if local but incomplete)
+      // 2. Load from DB
       const cachedParker = await getParker(trimmed);
 
       // Smart Refresh Logic:
@@ -168,17 +156,11 @@ export default function DistrictPage() {
         return;
       }
 
-      if (!user) {
-        setError('Sign in with GitHub to search new developers.');
-        return;
-      }
-
-      const { allowed, remaining } = await checkSearchRateLimit(user.id);
-      setSearchesRemaining(remaining);
-      if (!allowed && !isAuto) {
-        setError(
-          `Search limit reached — You can look up ${HOURLY_SEARCH_LIMIT} new profiles per hour. Citizens already in the city are unlimited.`,
-        );
+      // ─── ONLY PROCEED TO GITHUB FETCH IF IT'S THE LOGGED-IN USER ───
+      // If we aren't found in DB yet, check if we are the current logged-in user
+      const isMe = githubLogin?.toLowerCase() === trimmed;
+      if (!isMe && !isAuto) {
+        setError('Citizen not found. Only users who sign in are parked in this district.');
         return;
       }
 
@@ -236,8 +218,6 @@ export default function DistrictPage() {
         if (parker && githubLogin && parker.github_login.toLowerCase() === githubLogin.toLowerCase()) {
           setMyParkerRecord(parker);
         }
-
-        setSearchesRemaining((prev) => Math.max(0, prev - 1));
 
         setUsers((prev) => {
           const next = [...prev, newUser];
@@ -383,7 +363,7 @@ export default function DistrictPage() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={user ? 'Search GitHub user...' : 'Sign in to search Citizens'}
+                placeholder="Search Citizens..."
                 className="w-full bg-card/60 backdrop-blur-xl border border-white/10 text-foreground placeholder:text-muted-foreground font-mono text-sm rounded-lg pl-9 pr-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all shadow-2xl"
                 disabled={loading}
               />
@@ -410,17 +390,7 @@ export default function DistrictPage() {
               </span>
             </div>
 
-            {user && (
-              <div
-                className="hidden md:flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md"
-                title={`${searchesRemaining} new profile lookups remaining this hour`}
-              >
-                <Shield className="w-3 h-3 text-muted-foreground" />
-                <span className="font-pixel text-[10px] text-muted-foreground tracking-tighter">
-                  {searchesRemaining}/{HOURLY_SEARCH_LIMIT}
-                </span>
-              </div>
-            )}
+            {/* Removed search limit indicator */}
 
             {!authLoading &&
               (user ? (
