@@ -1,7 +1,7 @@
 import type { CarProps } from '@/types/car';
 import type { PositionedCar } from '@/components/3d/InstancedCars';
 
-// ─── Spiral Coordinate (same algorithm as Git City) ──────────
+// ─── Spiral Coordinate ──────────────────────────────────────
 
 export function spiralCoord(index: number): [number, number] {
     if (index === 0) return [0, 0];

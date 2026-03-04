@@ -3,10 +3,7 @@
 -- ============================================================
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
 --
--- Adapted from Git City's schema:
---   developers → parkers
---   activity_feed → activity_feed (same)
---   interactions → visits
+-- Tables: parkers, activity_feed, visits
 -- ============================================================
 
 -- ─── Parkers Table ──────────────────────────────────────────
@@ -67,7 +64,7 @@ CREATE INDEX IF NOT EXISTS idx_visits_target ON visits (target_id);
 CREATE INDEX IF NOT EXISTS idx_visits_created ON visits (created_at DESC);
 
 -- ─── Row Level Security (RLS) ───────────────────────────────
--- Same pattern as Git City — anon can read, authenticated can write own
+-- RLS: anon can read, authenticated can write own records
 
 -- Parkers: anyone can read, only owner can update their own record
 ALTER TABLE parkers ENABLE ROW LEVEL SECURITY;
@@ -115,7 +112,7 @@ CREATE POLICY "Anyone can insert visits"
 ALTER PUBLICATION supabase_realtime ADD TABLE activity_feed;
 
 -- ─── Auto-cleanup old feed events (30 days) ─────────────────
--- Same pattern as Git City's piggyback cleanup
+-- Periodic cleanup of old feed events
 
 CREATE OR REPLACE FUNCTION cleanup_old_feed_events()
 RETURNS void AS $$

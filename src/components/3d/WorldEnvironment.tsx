@@ -2,7 +2,7 @@
  * WorldEnvironment.tsx
  *
  * Renders ALL parking world decorations using instanced meshes.
- * Same architecture as Git City's InstancedDecorations — single
+ * Renders ALL parking world decorations using instanced meshes — single
  * draw call per decoration type for maximum performance.
  *
  * Renders: parking stripes, road surfaces, road dashes, bollards,

@@ -1,7 +1,7 @@
 /**
  * useLiveUsers.ts — Realtime presence for live user count
  *
- * Directly adapted from Git City's src/lib/useLiveUsers.ts
+ * Realtime presence for live user count.
  * Uses Supabase Realtime Presence to track how many users
  * are viewing the district right now.
  */

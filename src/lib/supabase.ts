@@ -1,8 +1,8 @@
 /**
  * supabase.ts — Supabase client for Repo Ridez
  *
- * Pattern adapted from Git City's src/lib/supabase.ts
- * Uses plain createClient() without Database generics — same approach as Git City.
+ * Supabase client singleton for Repo Ridez.
+ * Uses plain createClient() without Database generics for simplicity.
  *
  * Environment variables (set in .env):
  *   VITE_SUPABASE_URL

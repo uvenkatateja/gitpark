@@ -1,7 +1,7 @@
 /**
  * useActivityFeed.ts — Live activity feed from Supabase
  *
- * Adapted from Git City's /api/feed pattern.
+ * Live activity feed from Supabase.
  * Uses plain Supabase queries without Database generics.
  */
 

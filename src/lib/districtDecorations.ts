@@ -2,8 +2,8 @@
  * districtDecorations.ts
  * 
  * Procedurally generates ALL world decorations from the DistrictLayout.
- * Grows automatically as users (sections) increase — same pattern as
- * Git City's generateCityLayout decorations pipeline.
+ * Grows automatically as users (sections) increase —
+ * procedural generation from the DistrictLayout.
  * 
  * Decoration types:
  *  - parkingStripe:  painted line marking each parking space

@@ -1,8 +1,8 @@
 /**
  * parkerService.ts — Supabase operations for parkers (users)
  *
- * Adapted from Git City's claim + dev lookup patterns.
- * Uses plain Supabase queries (no Database generics) — same as Git City.
+ * Supabase CRUD operations for parkers (users).
+ * Uses plain Supabase queries with atomic claim pattern.
  */
 
 import { getSupabase, isSupabaseConfigured } from './supabase';

@@ -1,11 +1,10 @@
 /**
  * database.types.ts — Supabase Database type definitions for Repo Ridez
  *
- * These types mirror the Supabase tables we'll create.
- * Adapted from Git City's schema:
- *   Git City "developers" → Repo Ridez "parkers"
- *   Git City "activity_feed" → Repo Ridez "activity_feed"
- *   Git City "interactions" → Repo Ridez "visits"
+ * Type definitions for the Supabase tables:
+ *   "parkers" — users who have parked repos
+ *   "activity_feed" — event log
+ *   "visits" — section visit tracking
  */
 
 export interface Database {

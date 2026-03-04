@@ -1,7 +1,7 @@
 /**
  * useAuth.ts — GitHub OAuth auth hook for Repo Ridez
  *
- * Pattern adapted from Git City's auth flow:
+ * GitHub OAuth auth hook for Repo Ridez.
  *   1. User clicks "Sign in with GitHub"
  *   2. Redirect to Supabase OAuth → GitHub → callback URL
  *   3. Supabase handles token exchange via detectSessionInUrl
@@ -76,7 +76,7 @@ export function useAuth() {
 
 /**
  * Extract GitHub login from Supabase user metadata.
- * Same logic as Git City's auth callback route.
+ * Extract GitHub login from Supabase user metadata.
  */
 function extractGithubLogin(user: User | null): string | null {
     if (!user) return null;
