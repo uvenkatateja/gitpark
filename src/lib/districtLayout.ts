@@ -74,24 +74,20 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
     const sections: UserSection[] = [];
     let minX = 0, maxX = 0, minZ = 0, maxZ = 0;
 
-    console.log('[Layout] ========== GENERATING LAYOUT ==========');
-    console.log('[Layout] Total users:', users.length);
-    console.log('[Layout] Usernames:', users.map(u => u.username).join(', '));
-
     // Generate parking zones based on all repos
     const allRepos = users.flatMap(u => u.cars);
     const zones = generateParkingZones(allRepos);
-    
-    console.log('[Layout] Generated zones:', zones.map(z => `${z.name} (${z.repos.length} repos)`).join(', '));
 
-    // Debug: Check for duplicate usernames
-    const usernames = users.map(u => u.username.toLowerCase());
-    const uniqueUsernames = new Set(usernames);
-    if (usernames.length !== uniqueUsernames.size) {
-        console.error('[Layout] ❌ DUPLICATE USERS DETECTED!');
-        console.error('[Layout] Total users:', usernames.length, 'Unique:', uniqueUsernames.size);
-        const duplicates = usernames.filter((name, idx) => usernames.indexOf(name) !== idx);
-        console.error('[Layout] Duplicates:', [...new Set(duplicates)]);
+    // Debug: Check for duplicate usernames (only in development)
+    if (import.meta.env.DEV) {
+        const usernames = users.map(u => u.username.toLowerCase());
+        const uniqueUsernames = new Set(usernames);
+        if (usernames.length !== uniqueUsernames.size) {
+            console.error('[Layout] ❌ DUPLICATE USERS DETECTED!');
+            console.error('[Layout] Total users:', usernames.length, 'Unique:', uniqueUsernames.size);
+            const duplicates = usernames.filter((name, idx) => usernames.indexOf(name) !== idx);
+            console.error('[Layout] Duplicates:', [...new Set(duplicates)]);
+        }
     }
 
     // Track used coordinates to detect collisions
@@ -181,13 +177,6 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
     }
 
     // Log all coordinates
-    console.log('[Layout] Coordinate assignments:');
-    console.table(coordsList);
-
-    console.log(`[Layout] ✅ Generated ${sections.length} sections for ${users.length} users`);
-    console.log(`[Layout] ✅ Generated ${zones.length} parking zones`);
-    console.log('[Layout] ========================================');
-
     return {
         sections,
         allCars: sections.flatMap((s) => s.cars),

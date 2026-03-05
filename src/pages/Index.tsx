@@ -9,6 +9,11 @@ import {
   type DistrictLayout,
   type UserSection,
 } from '@/lib/districtLayout';
+import {
+  generateDistrictLayoutWithRoads,
+  type DistrictLayoutWithRoads,
+  type UserSectionWithRoads,
+} from '@/lib/districtLayoutWithRoads';
 import type { PositionedCar } from '@/components/3d/InstancedCars';
 import DistrictScene from '@/components/3d/DistrictScene';
 import MiniMap from '@/components/MiniMap';
@@ -140,16 +145,7 @@ export default function DistrictPage() {
     // Final deduplication check before layout generation
     const dedupedUsers = deduplicateUsers(users);
     
-    if (dedupedUsers.length !== users.length) {
-      console.warn('[Layout] Found duplicates! Original:', users.length, 'Deduped:', dedupedUsers.length);
-      console.warn('[Layout] Original usernames:', users.map(u => u.username));
-      console.warn('[Layout] Deduped usernames:', dedupedUsers.map(u => u.username));
-    } else {
-      console.log('[Layout] No duplicates found. Users:', dedupedUsers.length);
-      console.log('[Layout] Usernames:', dedupedUsers.map(u => u.username));
-    }
-    
-    return generateDistrictLayout(dedupedUsers);
+    return generateDistrictLayoutWithRoads(dedupedUsers);
   }, [users]);
 
   // Camera position for minimap
