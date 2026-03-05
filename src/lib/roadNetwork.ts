@@ -72,14 +72,45 @@ export const DEFAULT_GRID_CONFIG: GridConfig = {
 };
 
 /**
+ * Calculate dynamic lot size based on number of cars
+ */
+export function calculateLotSize(carCount: number): { width: number; depth: number } {
+  const PARKING_CONFIG = {
+    cols: 6,
+    spaceWidth: 2.2,
+    spaceDepth: 3.8,
+    rowGap: 0.8,
+    padding: 3,
+  };
+  
+  const cols = Math.min(PARKING_CONFIG.cols, Math.max(1, carCount));
+  const rows = Math.ceil(carCount / cols);
+  
+  // Calculate dimensions based on actual car layout
+  const width = cols * PARKING_CONFIG.spaceWidth + PARKING_CONFIG.padding * 2;
+  const depth = rows * (PARKING_CONFIG.spaceDepth + PARKING_CONFIG.rowGap) - PARKING_CONFIG.rowGap + PARKING_CONFIG.padding * 2;
+  
+  // Add minimum size and some extra space
+  return {
+    width: Math.max(width, 20),
+    depth: Math.max(depth, 20),
+  };
+}
+
+/**
  * Calculate lot position in grid
  */
 export function calculateLotPosition(
   index: number,
-  config: GridConfig = DEFAULT_GRID_CONFIG
+  config: GridConfig = DEFAULT_GRID_CONFIG,
+  lotSize?: { width: number; depth: number }
 ): LotPosition {
   const row = Math.floor(index / config.lotsPerRow);
   const col = index % config.lotsPerRow;
+  
+  // Use custom lot size if provided, otherwise use config default
+  const width = lotSize?.width ?? config.lotWidth;
+  const depth = lotSize?.depth ?? config.lotDepth;
   
   const cellWidth = config.lotWidth + config.roadWidth + config.spacing;
   const cellDepth = config.lotDepth + config.roadWidth + config.spacing;
@@ -89,8 +120,8 @@ export function calculateLotPosition(
   
   // Entrance is at the front (bottom) of the lot
   const entrance = {
-    x: x + config.lotWidth / 2,
-    z: z + config.lotDepth,
+    x: x + width / 2,
+    z: z + depth,
   };
   
   return {

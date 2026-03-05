@@ -141,7 +141,7 @@ export default function DistrictPage() {
   }, [loadWorld]);
 
   // ── Layout ──
-  const layout = useMemo<DistrictLayout>(() => {
+  const layout = useMemo<DistrictLayoutWithRoads>(() => {
     // Final deduplication check before layout generation
     const dedupedUsers = deduplicateUsers(users);
     

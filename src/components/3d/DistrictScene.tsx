@@ -10,7 +10,8 @@ import CarPanel from './CarPanel';
 import SectionWall from './DistrictWall';
 import ZoneGround from './ZoneGround';
 import ZoneLabel from './ZoneLabel';
-import type { DistrictLayout, UserSection } from '@/lib/districtLayout';
+import type { UserSection } from '@/lib/districtLayout';
+import type { DistrictLayoutWithRoads } from '@/lib/districtLayoutWithRoads';
 import { generateDecorations } from '@/lib/districtDecorations';
 import { useTheme } from '@/lib/useTheme';
 
@@ -133,7 +134,7 @@ function SceneContent({
     onCameraMove,
     theme,
 }: {
-    layout: DistrictLayout;
+    layout: DistrictLayoutWithRoads;
     decorations: ReturnType<typeof generateDecorations>;
     selectedCar: PositionedCar | null;
     onCarClick: (car: PositionedCar) => void;
@@ -151,8 +152,21 @@ function SceneContent({
     const groundCX = (bounds.minX + bounds.maxX) / 2;
     const groundCZ = (bounds.minZ + bounds.maxZ) / 2;
 
+    // Debug: Log layout data
+    console.log('[DistrictScene] Rendering layout:', {
+        sections: layout.sections.length,
+        cars: layout.allCars.length,
+        zones: layout.zones.length,
+        bounds: layout.bounds,
+        center: layout.center,
+    });
+
     return (
         <>
+            {/* DEBUG HELPERS - Remove after fixing */}
+            <axesHelper args={[100]} />
+            <gridHelper args={[500, 50, '#ff0000', '#00ff00']} position={[0, 0.1, 0]} />
+            
             {/* ─── Lighting (theme-based) ────────────────────── */}
             <ambientLight 
                 intensity={theme.lighting.ambient.intensity} 
@@ -205,22 +219,38 @@ function SceneContent({
             ))}
 
             {/* ─── Per-section elements ──────────────────────── */}
-            {layout.sections.map((section) => (
-                <group key={section.username}>
-                    <SectionGround section={section} theme={theme} onSectionClick={onSectionClick} />
-                    <SectionWall
-                        centerX={section.center[0]}
-                        centerZ={section.center[2]}
-                        width={section.width}
-                        depth={section.depth}
-                        theme={theme}
-                    />
-                    <LotSign
-                        username={section.username}
-                        position={[section.center[0], 0, section.center[2] + section.depth / 2 + 3]}
-                    />
-                </group>
-            ))}
+            {layout.sections.map((section, idx) => {
+                console.log(`[DistrictScene] Section ${idx}:`, {
+                    username: section.username,
+                    center: section.center,
+                    width: section.width,
+                    depth: section.depth,
+                    cars: section.cars.length,
+                });
+                
+                return (
+                    <group key={section.username}>
+                        {/* DEBUG: Add a visible marker at section center */}
+                        <mesh position={[section.center[0], 2, section.center[2]]}>
+                            <boxGeometry args={[2, 4, 2]} />
+                            <meshStandardMaterial color="#ff00ff" emissive="#ff00ff" emissiveIntensity={1} />
+                        </mesh>
+                        
+                        <SectionGround section={section} theme={theme} onSectionClick={onSectionClick} />
+                        <SectionWall
+                            centerX={section.center[0]}
+                            centerZ={section.center[2]}
+                            width={section.width}
+                            depth={section.depth}
+                            theme={theme}
+                        />
+                        <LotSign
+                            username={section.username}
+                            position={[section.center[0], 0, section.center[2] + section.depth / 2 + 3]}
+                        />
+                    </group>
+                );
+            })}
 
             {/* ─── World Decorations (instanced) ─────────────── */}
             <WorldEnvironment decorations={decorations} fogColor={theme.fog.color} />
@@ -256,6 +286,7 @@ function SceneContent({
 
             <OrbitControls
                 ref={controlsRef}
+                target={[layout.center.x, 0, layout.center.z]}
                 minPolarAngle={Math.PI / 12}
                 maxPolarAngle={Math.PI * 0.45}
                 minDistance={5}
@@ -271,7 +302,7 @@ function SceneContent({
 // ─── Main Exported Component ─────────────────────────────────
 
 interface DistrictSceneProps {
-    layout: DistrictLayout;
+    layout: DistrictLayoutWithRoads;
     selectedCar: PositionedCar | null;
     onCarClick: (car: PositionedCar) => void;
     onSectionClick?: (section: UserSection) => void;
@@ -299,10 +330,28 @@ export default function DistrictScene({
     // Generate decorations from layout (memoized — only recalculates when layout changes)
     const decorations = useMemo(() => generateDecorations(layout), [layout]);
 
+    // Calculate initial camera position based on layout center and bounds
+    const initialCameraPos = useMemo(() => {
+        const { center, bounds } = layout;
+        const width = bounds.maxX - bounds.minX;
+        const depth = bounds.maxZ - bounds.minZ;
+        const size = Math.max(width, depth, 50); // Minimum size of 50
+        
+        // Position camera to see the whole district
+        const distance = size * 0.8;
+        const height = size * 0.6;
+        
+        return [
+            center.x + distance * 0.5,
+            height,
+            center.z + distance * 0.7
+        ] as [number, number, number];
+    }, [layout.center.x, layout.center.z, layout.bounds.minX, layout.bounds.maxX, layout.bounds.minZ, layout.bounds.maxZ]);
+
     return (
         <div className="relative w-full h-full">
             <Canvas
-                camera={{ position: [0, 30, 35], fov: 50 }}
+                camera={{ position: initialCameraPos, fov: 50 }}
                 shadows
                 style={{ background: currentTheme.fog.color }}
                 gl={{

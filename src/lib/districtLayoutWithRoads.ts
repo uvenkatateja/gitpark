@@ -10,6 +10,7 @@ import {
   generateRoadNetwork,
   calculateOptimalGrid,
   calculateRoadPath,
+  calculateLotSize,
   type RoadNetwork,
   type LotPosition,
   type GridConfig,
@@ -77,26 +78,44 @@ const PARKING_CONFIG = {
 
 /**
  * Calculate car positions within a lot
+ * Cars must stay INSIDE the lot boundaries
  */
 function calculateCarPositions(
   cars: CarProps[],
   lotPosition: { x: number; z: number },
-  lotWidth: number
+  lotWidth: number,
+  lotDepth: number
 ): PositionedCar[] {
   const positioned: PositionedCar[] = [];
   const { cols, spaceWidth, spaceDepth, rowGap, padding } = PARKING_CONFIG;
+  
+  // Calculate how many cars we actually have
+  const numCars = cars.length;
+  const actualCols = Math.min(cols, numCars);
+  const rows = Math.ceil(numCars / cols);
+  
+  // Calculate the total grid size
+  const gridWidth = actualCols * spaceWidth;
+  const gridDepth = rows * (spaceDepth + rowGap) - rowGap;
+  
+  // Calculate starting position (centered within lot, with padding)
+  const startX = lotPosition.x + padding;
+  const startZ = lotPosition.z + padding;
+  
+  // Center the grid horizontally within the lot
+  const offsetX = (lotWidth - gridWidth - 2 * padding) / 2;
   
   cars.forEach((car, index) => {
     const row = Math.floor(index / cols);
     const col = index % cols;
     
-    // Calculate position within lot
-    const localX = col * spaceWidth - (cols * spaceWidth) / 2 + spaceWidth / 2;
-    const localZ = row * (spaceDepth + rowGap) + padding;
+    // Calculate actual columns in this row (last row might have fewer)
+    const carsInRow = Math.min(cols, numCars - row * cols);
+    const rowOffsetX = (actualCols - carsInRow) * spaceWidth / 2; // Center last row
     
-    // Global position
-    const slotX = lotPosition.x + lotWidth / 2 + localX;
-    const slotZ = lotPosition.z + localZ;
+    // Position within lot boundaries
+    const slotX = startX + offsetX + col * spaceWidth + spaceWidth / 2 + rowOffsetX;
+    const slotZ = startZ + row * (spaceDepth + rowGap) + spaceDepth / 2;
     
     // Rotation (slight variation for realism)
     const yRot = ((car.id % 97) / 97 - 0.5) * 0.18;
@@ -121,42 +140,55 @@ export function generateDistrictLayoutWithRoads(
   // Calculate optimal grid configuration
   const gridConfig = calculateOptimalGrid(users.length);
   
-  // Generate road network
-  const roadNetwork = generateRoadNetwork(users.length, gridConfig);
+  // Calculate individual lot sizes for each user based on their car count
+  const lotSizes = users.map(user => calculateLotSize(user.cars.length));
+  
+  // Update grid config to use maximum lot sizes for grid spacing
+  const maxWidth = Math.max(...lotSizes.map(s => s.width), gridConfig.lotWidth);
+  const maxDepth = Math.max(...lotSizes.map(s => s.depth), gridConfig.lotDepth);
+  
+  const adjustedConfig = {
+    ...gridConfig,
+    lotWidth: maxWidth,
+    lotDepth: maxDepth,
+  };
+  
+  // Generate road network with adjusted config
+  const roadNetwork = generateRoadNetwork(users.length, adjustedConfig);
   
   // Generate parking zones
   const allCars = users.flatMap(u => u.cars);
   const zones = generateParkingZones(allCars);
   
-  // Create sections for each user
+  // Create sections for each user with their specific lot size
   const sections: UserSectionWithRoads[] = users.map((user, index) => {
     const lotPosition = roadNetwork.lots[index];
     const { position, entrance } = lotPosition;
+    const lotSize = lotSizes[index];
     
-    // Calculate car positions
+    // Calculate car positions with the actual lot size
     const positionedCars = calculateCarPositions(
       user.cars,
       position,
-      gridConfig.lotWidth
+      lotSize.width,
+      lotSize.depth
     );
     
     // Find zone for this user (based on primary language)
     const primaryLanguage = getMostUsedLanguage(user.cars);
     const zone = zones.find(z => z.language === primaryLanguage);
     
-    // Calculate bounds
+    // Calculate bounds using actual lot size
     const bounds = {
       minX: position.x,
-      maxX: position.x + gridConfig.lotWidth,
+      maxX: position.x + lotSize.width,
       minZ: position.z,
-      maxZ: position.z + gridConfig.lotDepth,
+      maxZ: position.z + lotSize.depth,
     };
     
-    // Calculate center, width, depth for compatibility
-    const width = gridConfig.lotWidth;
-    const depth = gridConfig.lotDepth;
-    const centerX = position.x + width / 2;
-    const centerZ = position.z + depth / 2;
+    // Calculate center using actual lot size
+    const centerX = position.x + lotSize.width / 2;
+    const centerZ = position.z + lotSize.depth / 2;
     
     return {
       username: user.username,
@@ -167,12 +199,12 @@ export function generateDistrictLayoutWithRoads(
       bounds,
       lotPosition,
       zone,
-      isClaimed: user.isClaimed ?? false, // Provide default
+      isClaimed: user.isClaimed ?? false,
       rank: user.rank,
       sectionIndex: index,
       center: [centerX, 0, centerZ] as [number, number, number],
-      width,
-      depth,
+      width: lotSize.width,
+      depth: lotSize.depth,
     };
   });
   
