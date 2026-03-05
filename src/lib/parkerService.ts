@@ -69,14 +69,18 @@ export async function upsertParker(
     if (!isSupabaseConfigured()) return null;
 
     const supabase = getSupabase();
-    const existing = await getParker(data.github_login);
+    
+    // ALWAYS use lowercase for github_login to prevent case-sensitive duplicates
+    const normalizedLogin = data.github_login.toLowerCase();
+    
+    const existing = await getParker(normalizedLogin);
     const isNew = !existing;
 
     const { data: parker, error } = await supabase
         .from('parkers')
         .upsert(
             {
-                github_login: data.github_login.toLowerCase(),
+                github_login: normalizedLogin,
                 github_id: data.github_id ?? null,
                 display_name: data.display_name ?? null,
                 avatar_url: data.avatar_url ?? null,
@@ -125,7 +129,18 @@ export async function fetchAllParkers(): Promise<ParkerRecord[]> {
         console.warn('[Parker] Fetch all error:', error.message);
         return [];
     }
-    return (data || []) as ParkerRecord[];
+    
+    const parkers = (data || []) as ParkerRecord[];
+    
+    // Log for debugging
+    console.log('[ParkerService] Fetched parkers:', parkers.length);
+    const logins = parkers.map(p => p.github_login);
+    const uniqueLogins = new Set(logins);
+    if (logins.length !== uniqueLogins.size) {
+        console.error('[ParkerService] DUPLICATE LOGINS IN DATABASE!', logins);
+    }
+    
+    return parkers;
 }
 
 // ─── Claim Section ──────────────────────────────────────────

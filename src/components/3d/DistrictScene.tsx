@@ -56,13 +56,13 @@ function SectionGround({ section }: { section: UserSection }) {
     const [cx, , cz] = section.center;
     return (
         <group>
-            {/* Main asphalt pad */}
+            {/* Main asphalt pad - tight fit to cars */}
             <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[cx, 0.006, cz]}
                 receiveShadow
             >
-                <planeGeometry args={[section.width + 1, section.depth + 1]} />
+                <planeGeometry args={[section.width, section.depth]} />
                 <meshStandardMaterial
                     color="#0c0c18"
                     emissive="#0c0c18"
@@ -71,12 +71,12 @@ function SectionGround({ section }: { section: UserSection }) {
                 />
             </mesh>
 
-            {/* Subtle outer glow ring */}
+            {/* Subtle outer glow ring - minimal border */}
             <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[cx, 0.004, cz]}
             >
-                <planeGeometry args={[section.width + 2, section.depth + 2]} />
+                <planeGeometry args={[section.width + 1, section.depth + 1]} />
                 <meshStandardMaterial
                     color="#12122a"
                     emissive="#1a1a40"

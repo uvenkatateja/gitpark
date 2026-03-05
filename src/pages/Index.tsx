@@ -27,6 +27,19 @@ import {
 
 const SUGGESTIONS = ['torvalds', 'sindresorhus', 'tj', 'gaearon', 'yyx990803'];
 
+// ─── Helper: Deduplicate users array ─────────────────────────
+
+function deduplicateUsers(users: UserData[]): UserData[] {
+  const seen = new Map<string, UserData>();
+  for (const user of users) {
+    const key = user.username.toLowerCase();
+    if (!seen.has(key)) {
+      seen.set(key, user);
+    }
+  }
+  return Array.from(seen.values());
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 
 export default function DistrictPage() {
@@ -58,7 +71,16 @@ export default function DistrictPage() {
       ]);
       setDistrictStats(stats);
 
-      const userData: UserData[] = parkers.map((p) => ({
+      // Deduplicate parkers by github_login (case-insensitive)
+      const uniqueParkers = new Map<string, typeof parkers[0]>();
+      for (const p of parkers) {
+        const key = p.github_login.toLowerCase();
+        if (!uniqueParkers.has(key)) {
+          uniqueParkers.set(key, p);
+        }
+      }
+
+      const userData: UserData[] = Array.from(uniqueParkers.values()).map((p) => ({
         username: p.github_login,
         avatarUrl: p.avatar_url ?? '',
         cars: (p.top_repos || []).map((r: any, i: number) => repoToCar(r, i < 6)),
@@ -66,10 +88,14 @@ export default function DistrictPage() {
         isClaimed: p.claimed,
         rank: p.rank,
       }));
+      
+      console.log('[LoadWorld] Loaded users:', userData.map(u => u.username));
+      console.log('[LoadWorld] Unique count:', userData.length, 'Original count:', parkers.length);
+      
       setUsers(userData);
 
       if (githubLogin) {
-        const mine = parkers.find(
+        const mine = Array.from(uniqueParkers.values()).find(
           (p) => p.github_login.toLowerCase() === githubLogin.toLowerCase(),
         );
         if (mine) setMyParkerRecord(mine);
@@ -86,7 +112,21 @@ export default function DistrictPage() {
   }, [loadWorld]);
 
   // ── Layout ──
-  const layout = useMemo<DistrictLayout>(() => generateDistrictLayout(users), [users]);
+  const layout = useMemo<DistrictLayout>(() => {
+    // Final deduplication check before layout generation
+    const dedupedUsers = deduplicateUsers(users);
+    
+    if (dedupedUsers.length !== users.length) {
+      console.warn('[Layout] Found duplicates! Original:', users.length, 'Deduped:', dedupedUsers.length);
+      console.warn('[Layout] Original usernames:', users.map(u => u.username));
+      console.warn('[Layout] Deduped usernames:', dedupedUsers.map(u => u.username));
+    } else {
+      console.log('[Layout] No duplicates found. Users:', dedupedUsers.length);
+      console.log('[Layout] Usernames:', dedupedUsers.map(u => u.username));
+    }
+    
+    return generateDistrictLayout(dedupedUsers);
+  }, [users]);
 
   // Camera position for minimap
   const [camPos, setCamPos] = useState<{ x: number; z: number }>({ x: 0, z: 35 });
@@ -126,27 +166,30 @@ export default function DistrictPage() {
       );
 
       if (cachedParker && !isStale) {
-        const cars = (cachedParker.top_repos || []).map((r: any, i: number) =>
-          repoToCar(r, i < 6),
-        );
-        const userData: UserData = {
-          username: cachedParker.github_login,
-          avatarUrl: cachedParker.avatar_url ?? '',
-          cars,
-          fetchedAt: Date.now(),
-          isClaimed: cachedParker.claimed,
-          rank: cachedParker.rank,
-        };
-
+        // User exists in database - check if already in local state
         if (existingIdx === -1) {
+          // Not in local state yet - add them
+          const cars = (cachedParker.top_repos || []).map((r: any, i: number) =>
+            repoToCar(r, i < 6),
+          );
+          const userData: UserData = {
+            username: cachedParker.github_login,
+            avatarUrl: cachedParker.avatar_url ?? '',
+            cars,
+            fetchedAt: Date.now(),
+            isClaimed: cachedParker.claimed,
+            rank: cachedParker.rank,
+          };
+
           setUsers((prev) => {
-            const next = [...prev, userData];
+            const next = deduplicateUsers([...prev, userData]);
             const newLayout = generateDistrictLayout(next);
             const newSection = newLayout.sections[newLayout.sections.length - 1];
             setCameraTarget(newSection.center);
             return next;
           });
         } else {
+          // Already in local state - just fly camera to their section
           const section = generateDistrictLayout(users).sections[existingIdx];
           setCameraTarget(section.center);
         }
@@ -219,13 +262,30 @@ export default function DistrictPage() {
           setMyParkerRecord(parker);
         }
 
-        setUsers((prev) => {
-          const next = [...prev, newUser];
-          const newLayout = generateDistrictLayout(next);
-          const newSection = newLayout.sections[newLayout.sections.length - 1];
-          setCameraTarget(newSection.center);
-          return next;
-        });
+        // Check again if user was added while we were fetching
+        const finalCheck = users.findIndex((u) => u.username.toLowerCase() === ghUser.login.toLowerCase());
+        
+        if (finalCheck === -1) {
+          // User not in state - add them
+          setUsers((prev) => {
+            const next = deduplicateUsers([...prev, newUser]);
+            const newLayout = generateDistrictLayout(next);
+            const newSection = newLayout.sections[newLayout.sections.length - 1];
+            setCameraTarget(newSection.center);
+            return next;
+          });
+        } else {
+          // User already exists - just update their data and fly to them
+          setUsers((prev) => {
+            const next = [...prev];
+            next[finalCheck] = newUser;
+            const deduped = deduplicateUsers(next);
+            const newLayout = generateDistrictLayout(deduped);
+            const section = newLayout.sections[finalCheck];
+            setCameraTarget(section.center);
+            return deduped;
+          });
+        }
 
         if (!isAuto) setSearchInput('');
       } catch (e: any) {
