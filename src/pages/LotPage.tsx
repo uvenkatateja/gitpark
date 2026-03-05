@@ -1,12 +1,15 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchGitHubUser, fetchGitHubRepos, type GitHubUser, type GitHubRepo } from '@/lib/github';
 import { repoToCar } from '@/lib/repoToCar';
 import { ParkingLot } from '@/components/3d/ParkingLot';
 import { type CarProps } from '@/types/car';
-import LoadingScreen, { type LoadingStage } from '@/components/LoadingScreen';
+import LoadingScreen from '@/components/LoadingScreen';
 import { AlertTriangle, ArrowLeft, User } from 'lucide-react';
 import { getParker, incrementVisit } from '@/lib/parkerService';
+
+// Loading stages for this page
+type LoadingStage = 'connect' | 'repos' | 'build' | 'park' | 'done';
 
 export default function LotPage() {
   const { username } = useParams<{ username: string }>();
@@ -97,7 +100,17 @@ export default function LotPage() {
   }
 
   if (!ready) {
-    return <LoadingScreen stage={stage} username={username || ''} />;
+    return (
+      <LoadingScreen 
+        context={{
+          isLoadingUser: stage === 'connect',
+          isLoadingRepos: stage === 'repos',
+          isBuilding3D: stage === 'build' || stage === 'park',
+        }}
+        fullScreen
+        showSequence
+      />
+    );
   }
 
   return (

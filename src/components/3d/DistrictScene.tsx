@@ -144,6 +144,7 @@ function SceneContent({
     theme: any;
 }) {
     const { bounds } = layout;
+    
     // Ground extends well beyond the sections so the world feels infinite
     const groundW = Math.max(200, (bounds.maxX - bounds.minX) * 2.5 + 80);
     const groundD = Math.max(200, (bounds.maxZ - bounds.minZ) * 2.5 + 80);
