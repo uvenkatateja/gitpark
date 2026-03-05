@@ -1,4 +1,4 @@
-import { useMemo, useRef, Suspense } from 'react';
+import { useMemo, useRef, Suspense, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -7,13 +7,12 @@ import InstancedLabels from './InstancedLabels';
 import WorldEnvironment from './WorldEnvironment';
 import { LotSign } from './LotSign';
 import CarPanel from './CarPanel';
+import SectionWall from './DistrictWall';
+import ZoneGround from './ZoneGround';
+import ZoneLabel from './ZoneLabel';
 import type { DistrictLayout, UserSection } from '@/lib/districtLayout';
 import { generateDecorations } from '@/lib/districtDecorations';
-import { SPACE_D, ROW_GAP, SECTION_COLS } from '@/lib/districtLayout';
-
-const FOG_COLOR = '#060610';
-const GRID_COLOR_1 = '#0e0e20';
-const GRID_COLOR_2 = '#0a0a18';
+import { useTheme } from '@/lib/useTheme';
 
 // ─── Camera Controller ──────────────────────────────────────
 
@@ -52,21 +51,46 @@ function CameraController({
 
 // ─── Section Ground (asphalt pad per user) ──────────────────
 
-function SectionGround({ section }: { section: UserSection }) {
+function SectionGround({ 
+    section, 
+    theme, 
+    onSectionClick 
+}: { 
+    section: UserSection; 
+    theme: any;
+    onSectionClick?: (section: UserSection) => void;
+}) {
     const [cx, , cz] = section.center;
+    const [hovered, setHovered] = useState(false);
+
+    const handleClick = (e: any) => {
+        e.stopPropagation();
+        onSectionClick?.(section);
+    };
+
     return (
         <group>
-            {/* Main asphalt pad - tight fit to cars */}
+            {/* Main asphalt pad - tight fit to cars - CLICKABLE */}
             <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[cx, 0.006, cz]}
                 receiveShadow
+                onClick={handleClick}
+                onPointerOver={(e) => {
+                    e.stopPropagation();
+                    setHovered(true);
+                    document.body.style.cursor = 'pointer';
+                }}
+                onPointerOut={() => {
+                    setHovered(false);
+                    document.body.style.cursor = 'auto';
+                }}
             >
                 <planeGeometry args={[section.width, section.depth]} />
                 <meshStandardMaterial
-                    color="#0c0c18"
-                    emissive="#0c0c18"
-                    emissiveIntensity={0.08}
+                    color={theme.section.asphaltColor}
+                    emissive={hovered ? theme.section.borderEmissive : theme.section.asphaltEmissive}
+                    emissiveIntensity={hovered ? 0.25 : 0.08}
                     roughness={0.95}
                 />
             </mesh>
@@ -78,9 +102,9 @@ function SectionGround({ section }: { section: UserSection }) {
             >
                 <planeGeometry args={[section.width + 1, section.depth + 1]} />
                 <meshStandardMaterial
-                    color="#12122a"
-                    emissive="#1a1a40"
-                    emissiveIntensity={0.15}
+                    color={theme.section.borderColor}
+                    emissive={theme.section.borderEmissive}
+                    emissiveIntensity={hovered ? 0.3 : 0.15}
                     roughness={0.9}
                 />
             </mesh>
@@ -103,17 +127,21 @@ function SceneContent({
     decorations,
     selectedCar,
     onCarClick,
+    onSectionClick,
     cameraTarget,
     controlsRef,
     onCameraMove,
+    theme,
 }: {
     layout: DistrictLayout;
     decorations: ReturnType<typeof generateDecorations>;
     selectedCar: PositionedCar | null;
     onCarClick: (car: PositionedCar) => void;
+    onSectionClick?: (section: UserSection) => void;
     cameraTarget: [number, number, number] | null;
     controlsRef: React.RefObject<any>;
     onCameraMove?: (x: number, z: number) => void;
+    theme: any;
 }) {
     const { bounds } = layout;
     // Ground extends well beyond the sections so the world feels infinite
@@ -124,23 +152,34 @@ function SceneContent({
 
     return (
         <>
-            {/* ─── Lighting ──────────────────────────────────── */}
-            <ambientLight intensity={0.15} color="#8888aa" />
-            <hemisphereLight args={['#1a1a3e', '#050510', 0.25]} />
-            <directionalLight position={[20, 40, 15]} intensity={0.3} color="#8899cc" />
-            {/* Accent light from below (parking lot glow) */}
-            <directionalLight position={[-10, -5, 20]} intensity={0.05} color="#ffd700" />
+            {/* ─── Lighting (theme-based) ────────────────────── */}
+            <ambientLight 
+                intensity={theme.lighting.ambient.intensity} 
+                color={theme.lighting.ambient.color} 
+            />
+            <hemisphereLight 
+                args={[
+                    theme.lighting.hemisphere.skyColor, 
+                    theme.lighting.hemisphere.groundColor, 
+                    theme.lighting.hemisphere.intensity
+                ]} 
+            />
+            <directionalLight 
+                position={theme.lighting.directional.position} 
+                intensity={theme.lighting.directional.intensity} 
+                color={theme.lighting.directional.color} 
+            />
 
-            {/* ─── Fog ───────────────────────────────────────── */}
-            <fog attach="fog" args={[FOG_COLOR, 35, 150]} />
+            {/* ─── Fog (theme-based) ─────────────────────────── */}
+            <fog attach="fog" args={[theme.fog.color, theme.fog.near, theme.fog.far]} />
 
             {/* ─── Global ground (infinite asphalt) ──────────── */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[groundCX, -0.03, groundCZ]}>
                 <planeGeometry args={[groundW, groundD]} />
                 <meshStandardMaterial
-                    color="#050508"
-                    emissive="#050508"
-                    emissiveIntensity={0.1}
+                    color={theme.ground.baseColor}
+                    emissive={theme.ground.emissive}
+                    emissiveIntensity={theme.ground.emissiveIntensity}
                     roughness={0.98}
                 />
             </mesh>
@@ -150,16 +189,31 @@ function SceneContent({
                 args={[
                     Math.max(groundW, groundD),
                     Math.floor(Math.max(groundW, groundD) / 4),
-                    GRID_COLOR_1,
-                    GRID_COLOR_2,
+                    theme.ground.gridColor1,
+                    theme.ground.gridColor2,
                 ]}
                 position={[groundCX, -0.01, groundCZ]}
             />
 
+            {/* ─── Parking Zones ─────────────────────────────── */}
+            {layout.zones.map((zone) => (
+                <group key={zone.id}>
+                    <ZoneGround zone={zone} theme={theme} />
+                    <ZoneLabel zone={zone} />
+                </group>
+            ))}
+
             {/* ─── Per-section elements ──────────────────────── */}
             {layout.sections.map((section) => (
                 <group key={section.username}>
-                    <SectionGround section={section} />
+                    <SectionGround section={section} theme={theme} onSectionClick={onSectionClick} />
+                    <SectionWall
+                        centerX={section.center[0]}
+                        centerZ={section.center[2]}
+                        width={section.width}
+                        depth={section.depth}
+                        theme={theme}
+                    />
                     <LotSign
                         username={section.username}
                         position={[section.center[0], 0, section.center[2] + section.depth / 2 + 3]}
@@ -168,7 +222,7 @@ function SceneContent({
             ))}
 
             {/* ─── World Decorations (instanced) ─────────────── */}
-            <WorldEnvironment decorations={decorations} fogColor={FOG_COLOR} />
+            <WorldEnvironment decorations={decorations} fogColor={theme.fog.color} />
 
             {/* ─── ALL cars instanced together ────────────────── */}
             {layout.allCars.length > 0 && (
@@ -176,9 +230,9 @@ function SceneContent({
                     cars={layout.allCars}
                     focusedCarId={selectedCar?.id ?? null}
                     onCarClick={onCarClick}
-                    fogColor={FOG_COLOR}
-                    fogNear={35}
-                    fogFar={150}
+                    fogColor={theme.fog.color}
+                    fogNear={theme.fog.near}
+                    fogFar={theme.fog.far}
                 />
             )}
 
@@ -219,7 +273,9 @@ interface DistrictSceneProps {
     layout: DistrictLayout;
     selectedCar: PositionedCar | null;
     onCarClick: (car: PositionedCar) => void;
+    onSectionClick?: (section: UserSection) => void;
     onCarClose: () => void;
+    onCarCustomize?: (car: PositionedCar) => void;
     cameraTarget: [number, number, number] | null;
     onBackgroundClick: () => void;
     onCameraMove?: (x: number, z: number) => void;
@@ -229,12 +285,15 @@ export default function DistrictScene({
     layout,
     selectedCar,
     onCarClick,
+    onSectionClick,
     onCarClose,
+    onCarCustomize,
     cameraTarget,
     onBackgroundClick,
     onCameraMove,
 }: DistrictSceneProps) {
     const controlsRef = useRef<any>(null);
+    const { currentTheme } = useTheme();
 
     // Generate decorations from layout (memoized — only recalculates when layout changes)
     const decorations = useMemo(() => generateDecorations(layout), [layout]);
@@ -244,7 +303,7 @@ export default function DistrictScene({
             <Canvas
                 camera={{ position: [0, 30, 35], fov: 50 }}
                 shadows
-                style={{ background: FOG_COLOR }}
+                style={{ background: currentTheme.fog.color }}
                 gl={{
                     antialias: true,
                     toneMapping: THREE.ACESFilmicToneMapping,
@@ -258,14 +317,16 @@ export default function DistrictScene({
                         decorations={decorations}
                         selectedCar={selectedCar}
                         onCarClick={onCarClick}
+                        onSectionClick={onSectionClick}
                         cameraTarget={cameraTarget}
                         controlsRef={controlsRef}
                         onCameraMove={onCameraMove}
+                        theme={currentTheme}
                     />
                 </Suspense>
             </Canvas>
 
-            <CarPanel car={selectedCar} onClose={onCarClose} />
+            <CarPanel car={selectedCar} onClose={onCarClose} onCustomize={onCarCustomize} />
         </div>
     );
 }

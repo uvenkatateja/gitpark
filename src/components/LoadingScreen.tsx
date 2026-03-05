@@ -1,116 +1,94 @@
-import { useState, useEffect, useRef } from 'react';
+/**
+ * Loading Screen Component
+ * Shows fun loading messages with animation
+ */
 
-export type LoadingStage = 'connect' | 'repos' | 'build' | 'park' | 'done';
-
-const STAGES: { key: LoadingStage; label: string; icon: string }[] = [
-    { key: 'connect', label: 'Connecting to GitHub...', icon: '🔌' },
-    { key: 'repos', label: 'Loading repositories...', icon: '📦' },
-    { key: 'build', label: 'Building cars...', icon: '🔧' },
-    { key: 'park', label: 'Parking the lot...', icon: '🅿️' },
-    { key: 'done', label: 'Ready!', icon: '🚗' },
-];
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { getContextualLoadingMessage, getLoadingSequence } from '@/lib/loadingMessages';
 
 interface LoadingScreenProps {
-    stage: LoadingStage;
-    username: string;
+  context?: {
+    isLoadingUser?: boolean;
+    isLoadingRepos?: boolean;
+    isBuilding3D?: boolean;
+    isFunny?: boolean;
+  };
+  fullScreen?: boolean;
+  showSequence?: boolean;
 }
 
-export default function LoadingScreen({ stage, username }: LoadingScreenProps) {
-    const [dots, setDots] = useState('');
-    const currentIdx = STAGES.findIndex((s) => s.key === stage);
-    const progress = Math.min(((currentIdx + 1) / STAGES.length) * 100, 100);
+export default function LoadingScreen({
+  context = {},
+  fullScreen = false,
+  showSequence = false,
+}: LoadingScreenProps) {
+  const [currentMessage, setCurrentMessage] = useState(() => 
+    getContextualLoadingMessage(context)
+  );
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [sequence] = useState(() => showSequence ? getLoadingSequence(5) : []);
 
-    // Animated dots
-    useEffect(() => {
-        if (stage === 'done') return;
-        const id = setInterval(() => {
-            setDots((d) => (d.length >= 3 ? '' : d + '.'));
-        }, 400);
-        return () => clearInterval(id);
-    }, [stage]);
+  useEffect(() => {
+    if (showSequence && sequence.length > 0) {
+      // Rotate through sequence
+      const interval = setInterval(() => {
+        setMessageIndex(prev => (prev + 1) % sequence.length);
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    } else {
+      // Change message every 3 seconds
+      const interval = setInterval(() => {
+        setCurrentMessage(getContextualLoadingMessage(context));
+      }, 3000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [context, showSequence, sequence]);
 
-    // Car animation position
-    const carRef = useRef(0);
-    const [carPos, setCarPos] = useState(0);
-    useEffect(() => {
-        const id = setInterval(() => {
-            carRef.current = (carRef.current + 2) % 100;
-            setCarPos(carRef.current);
-        }, 50);
-        return () => clearInterval(id);
-    }, []);
+  const message = showSequence && sequence.length > 0 
+    ? sequence[messageIndex] 
+    : currentMessage;
 
-    return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
-            {/* Pixel car animation */}
-            <div className="relative w-64 h-8 mb-8 overflow-hidden">
-                <div className="absolute bottom-0 w-full h-px bg-border" />
-                <div
-                    className="absolute bottom-1 text-2xl transition-none"
-                    style={{ left: `${carPos}%`, transform: 'translateX(-50%)' }}
-                >
-                    🚗
-                </div>
-                {/* Road dashes */}
-                <div className="absolute bottom-0 w-full flex gap-3 justify-center">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                        <div
-                            key={i}
-                            className="w-3 h-px bg-muted-foreground/30"
-                            style={{ transform: `translateX(${-carPos * 0.5}px)` }}
-                        />
-                    ))}
-                </div>
-            </div>
+  const containerClass = fullScreen
+    ? 'fixed inset-0 flex items-center justify-center bg-background z-50'
+    : 'flex items-center justify-center p-8';
 
-            {/* Title */}
-            <h2 className="font-pixel text-lg text-primary mb-2 text-glow-yellow">
-                GITPARK
-            </h2>
-            <p className="font-pixel text-xs text-muted-foreground mb-8">
-                Loading {username}'s parking lot
-            </p>
-
-            {/* Progress bar */}
-            <div className="w-64 h-3 bg-secondary rounded-sm border border-border overflow-hidden mb-6">
-                <div
-                    className="h-full bg-primary transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
-
-            {/* Stages list */}
-            <div className="flex flex-col gap-2 w-64">
-                {STAGES.map((s, i) => {
-                    const isDone = i < currentIdx;
-                    const isCurrent = i === currentIdx;
-                    const isPending = i > currentIdx;
-
-                    return (
-                        <div
-                            key={s.key}
-                            className={`flex items-center gap-2 text-xs font-mono transition-opacity duration-300 ${isPending ? 'opacity-25' : 'opacity-100'
-                                }`}
-                        >
-                            <span className="w-5 text-center">
-                                {isDone ? '✓' : isCurrent ? s.icon : '○'}
-                            </span>
-                            <span
-                                className={
-                                    isDone
-                                        ? 'text-muted-foreground line-through'
-                                        : isCurrent
-                                            ? 'text-primary'
-                                            : 'text-muted-foreground'
-                                }
-                            >
-                                {s.label}
-                                {isCurrent && stage !== 'done' ? dots : ''}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
+  return (
+    <div className={containerClass}>
+      <div className="text-center space-y-4">
+        {/* Spinner */}
+        <div className="flex justify-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
         </div>
-    );
+
+        {/* Message */}
+        <div className="space-y-2 animate-in fade-in duration-500" key={message.id}>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-3xl animate-bounce">{message.icon}</span>
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">
+            {message.text}
+          </p>
+        </div>
+
+        {/* Progress dots (optional) */}
+        {showSequence && sequence.length > 0 && (
+          <div className="flex justify-center gap-1.5 pt-2">
+            {sequence.map((_, index) => (
+              <div
+                key={index}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  index === messageIndex
+                    ? 'bg-primary w-4'
+                    : 'bg-white/20'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

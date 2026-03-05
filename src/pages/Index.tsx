@@ -7,11 +7,19 @@ import {
   generateDistrictLayout,
   type UserData,
   type DistrictLayout,
+  type UserSection,
 } from '@/lib/districtLayout';
 import type { PositionedCar } from '@/components/3d/InstancedCars';
 import DistrictScene from '@/components/3d/DistrictScene';
 import MiniMap from '@/components/MiniMap';
 import ActivityTicker from '@/components/ActivityTicker';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UserProfilePanel from '@/components/UserProfilePanel';
+import AchievementsPanel from '@/components/AchievementsPanel';
+import AchievementNotification from '@/components/AchievementNotification';
+import StreakWidget from '@/components/StreakWidget';
+import type { Achievement, ParkerAchievement } from '@/lib/achievements';
+import type { CheckinResult } from '@/lib/streakService';
 import { useAuth } from '@/lib/useAuth';
 import { useLiveUsers } from '@/lib/useLiveUsers';
 import {
@@ -50,9 +58,25 @@ export default function DistrictPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCar, setSelectedCar] = useState<PositionedCar | null>(null);
+  const [selectedSection, setSelectedSection] = useState<UserSection | null>(null);
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [districtStats, setDistrictStats] = useState<{ total_parkers: number; total_stars: number } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // Achievements state
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [parkerAchievements, setParkerAchievements] = useState<ParkerAchievement[]>([]);
+  const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
+  const [achievementStats, setAchievementStats] = useState({
+    totalCheckins: 0,
+    repoCount: 0,
+    totalStars: 0,
+    currentStreak: 0,
+    kudosGiven: 0,
+    kudosReceived: 0,
+    languageCount: 0,
+  });
 
   // ── Supabase: Auth + Live Users ──
   const { user, githubLogin, signIn, signOut, loading: authLoading } = useAuth();
@@ -142,6 +166,21 @@ export default function DistrictPage() {
     }, 250);
     return () => clearInterval(id);
   }, []);
+
+  // ── ESC key handler ──
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedSection) {
+          setSelectedSection(null);
+        } else if (selectedCar) {
+          setSelectedCar(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [selectedSection, selectedCar]);
 
   // ── Search ──
   const handleSearch = useCallback(
@@ -330,9 +369,17 @@ export default function DistrictPage() {
 
   const handleCarClick = useCallback((car: PositionedCar) => {
     setSelectedCar((prev) => (prev?.id === car.id ? null : car));
+    setSelectedSection(null); // Close section panel when clicking a car
   }, []);
 
   const handleCarClose = useCallback(() => setSelectedCar(null), []);
+
+  const handleSectionClick = useCallback((section: UserSection) => {
+    setSelectedSection((prev) => (prev?.username === section.username ? null : section));
+    setSelectedCar(null); // Close car panel when clicking a section
+  }, []);
+
+  const handleSectionClose = useCallback(() => setSelectedSection(null), []);
 
   const handleFlyTo = useCallback(
     (idx: number) => {
@@ -364,10 +411,12 @@ export default function DistrictPage() {
         layout={layout}
         selectedCar={selectedCar}
         onCarClick={handleCarClick}
+        onSectionClick={handleSectionClick}
         onCarClose={handleCarClose}
         cameraTarget={cameraTarget}
         onBackgroundClick={() => {
           setSelectedCar(null);
+          setSelectedSection(null);
           setCameraTarget(null);
         }}
         onCameraMove={handleCameraMove}
@@ -436,6 +485,22 @@ export default function DistrictPage() {
           </form>
 
           <div className="flex items-center gap-3">
+            <ThemeSwitcher />
+
+            {/* Achievements Button */}
+            {user && myParkerRecord && (
+              <button
+                onClick={() => setShowAchievements(true)}
+                className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md hover:bg-primary/10 transition-all hover:scale-105 group"
+                title="View Achievements"
+              >
+                <Trophy className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="hidden sm:inline font-pixel text-[10px] text-muted-foreground group-hover:text-primary transition-colors pt-0.5 tracking-tighter">
+                  {parkerAchievements.length}/{achievements.length}
+                </span>
+              </button>
+            )}
+
             <div className="hidden md:flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md">
               <span
                 className={`w-2 h-2 rounded-full ${liveStatus === 'connected'
@@ -571,7 +636,7 @@ export default function DistrictPage() {
       )}
 
       {users.length > 0 && (
-        <div className="absolute bottom-12 left-6 z-30 max-h-64 overflow-y-auto pointer-events-auto custom-scrollbar">
+        <div className="absolute bottom-12 left-6 z-30 max-h-64 overflow-y-auto pointer-events-auto scrollbar-hide">
           <div className="bg-card/40 backdrop-blur-2xl border border-white/10 rounded-xl w-60 overflow-hidden shadow-2xl">
             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-white/5">
               <span className="font-pixel text-[10px] text-muted-foreground uppercase tracking-[0.2em]">
@@ -621,6 +686,36 @@ export default function DistrictPage() {
         </div>
       )}
 
+      {/* Streak Widget */}
+      {user && myParkerRecord && (
+        <div className="absolute bottom-12 right-6 z-30 w-80 pointer-events-auto">
+          <StreakWidget
+            parkerId={myParkerRecord.id}
+            currentStreak={myParkerRecord.current_streak || 0}
+            longestStreak={myParkerRecord.longest_streak || 0}
+            lastCheckinDate={myParkerRecord.last_checkin_date}
+            totalCheckins={myParkerRecord.total_checkins || 0}
+            streakFrozenUntil={myParkerRecord.streak_frozen_until}
+            onCheckinSuccess={(result: CheckinResult) => {
+              // Update local state
+              setMyParkerRecord({
+                ...myParkerRecord,
+                current_streak: result.currentStreak,
+                longest_streak: result.longestStreak,
+                total_checkins: result.checkinCount,
+                last_checkin_date: new Date().toISOString().split('T')[0],
+              });
+              // Check for new achievements
+              fetch('/api/achievements/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ parkerId: myParkerRecord.id }),
+              });
+            }}
+          />
+        </div>
+      )}
+
       {initialLoading && (
         <div className="absolute inset-0 z-50 bg-background flex flex-col items-center justify-center">
           <div className="relative w-24 h-24 mb-6">
@@ -650,7 +745,37 @@ export default function DistrictPage() {
         <ActivityTicker sections={layout.sections} />
       )}
 
+      {/* User Profile Panel */}
+      <UserProfilePanel 
+        section={selectedSection} 
+        onClose={handleSectionClose}
+        onViewAchievements={() => setShowAchievements(true)}
+      />
+
+      {/* Achievements Panel */}
+      {showAchievements && (
+        <AchievementsPanel
+          achievements={achievements}
+          parkerAchievements={parkerAchievements}
+          stats={achievementStats}
+          onClose={() => setShowAchievements(false)}
+        />
+      )}
+
+      {/* Achievement Notification */}
+      <AchievementNotification
+        achievement={newAchievement}
+        onClose={() => setNewAchievement(null)}
+      />
+
       <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }

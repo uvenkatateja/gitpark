@@ -29,9 +29,17 @@ export interface ParkerRecord {
     visit_count: number;
     kudos_count: number;
     created_at: string;
+    current_streak: number;
+    longest_streak: number;
+    last_checkin_date: string | null;
+    total_checkins: number;
+    streak_frozen_until: string | null;
+    coins: number;
+    total_coins_earned: number;
+    last_daily_claim: string | null;
 }
 
-const SELECT_FIELDS = 'id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, top_repos, rank, claimed, visit_count, kudos_count, created_at';
+const SELECT_FIELDS = 'id, github_login, display_name, avatar_url, public_repos, total_stars, total_forks, primary_language, top_repos, rank, claimed, visit_count, kudos_count, created_at, current_streak, longest_streak, last_checkin_date, total_checkins, streak_frozen_until, coins, total_coins_earned, last_daily_claim';
 
 // ─── Check if parker already exists (free, no rate limit) ───
 

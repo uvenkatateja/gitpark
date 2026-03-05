@@ -1,5 +1,6 @@
 import type { CarProps } from '@/types/car';
 import type { PositionedCar } from '@/components/3d/InstancedCars';
+import { generateParkingZones, type ParkingZone } from './parkingZones';
 
 // ─── Spiral Coordinate ──────────────────────────────────────
 
@@ -56,12 +57,15 @@ export interface UserSection {
     sectionIndex: number;
     isClaimed: boolean;
     rank?: number | null;
+    zoneId?: string;
+    primaryLanguage?: string;
 }
 
 export interface DistrictLayout {
     sections: UserSection[];
     allCars: PositionedCar[];
     bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+    zones: ParkingZone[];
 }
 
 // ─── Main Layout Function ────────────────────────────────────
@@ -73,6 +77,12 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
     console.log('[Layout] ========== GENERATING LAYOUT ==========');
     console.log('[Layout] Total users:', users.length);
     console.log('[Layout] Usernames:', users.map(u => u.username).join(', '));
+
+    // Generate parking zones based on all repos
+    const allRepos = users.flatMap(u => u.cars);
+    const zones = generateParkingZones(allRepos);
+    
+    console.log('[Layout] Generated zones:', zones.map(z => `${z.name} (${z.repos.length} repos)`).join(', '));
 
     // Debug: Check for duplicate usernames
     const usernames = users.map(u => u.username.toLowerCase());
@@ -138,6 +148,18 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
             };
         });
 
+        // Determine primary language for this user
+        const languageCounts = new Map<string, number>();
+        user.cars.forEach(car => {
+            const lang = car.language || 'Other';
+            languageCounts.set(lang, (languageCounts.get(lang) || 0) + 1);
+        });
+        const primaryLanguage = Array.from(languageCounts.entries())
+            .sort((a, b) => b[1] - a[1])[0]?.[0] || 'Other';
+        
+        // Find corresponding zone
+        const userZone = zones.find(z => z.language === primaryLanguage);
+
         sections.push({
             username: user.username,
             avatarUrl: user.avatarUrl,
@@ -148,6 +170,8 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
             sectionIndex: i,
             isClaimed: !!user.isClaimed,
             rank: user.rank,
+            zoneId: userZone?.id,
+            primaryLanguage,
         });
 
         minX = Math.min(minX, cx - sectionW / 2);
@@ -161,11 +185,13 @@ export function generateDistrictLayout(users: UserData[]): DistrictLayout {
     console.table(coordsList);
 
     console.log(`[Layout] ✅ Generated ${sections.length} sections for ${users.length} users`);
+    console.log(`[Layout] ✅ Generated ${zones.length} parking zones`);
     console.log('[Layout] ========================================');
 
     return {
         sections,
         allCars: sections.flatMap((s) => s.cars),
         bounds: { minX, maxX, minZ, maxZ },
+        zones,
     };
 }

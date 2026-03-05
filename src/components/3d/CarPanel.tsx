@@ -5,6 +5,7 @@ import { Star, GitFork, ExternalLink, Clock, Tag, X, Archive, GitBranch, Sparkle
 interface CarPanelProps {
     car: CarProps | null;
     onClose: () => void;
+    onCustomize?: (car: CarProps) => void;
 }
 
 function timeAgo(date: Date): string {
@@ -23,7 +24,7 @@ function timeAgo(date: Date): string {
     return 'just now';
 }
 
-export default function CarPanel({ car, onClose }: CarPanelProps) {
+export default function CarPanel({ car, onClose, onCustomize }: CarPanelProps) {
     const [visible, setVisible] = useState(false);
 
     // Animate in
@@ -173,7 +174,19 @@ export default function CarPanel({ car, onClose }: CarPanelProps) {
                 </div>
 
                 {/* Footer CTA */}
-                <div className="px-4 py-3 border-t border-border">
+                <div className="px-4 py-3 border-t border-border space-y-2">
+                    {onCustomize && (
+                        <button
+                            onClick={() => {
+                                onCustomize(car);
+                                handleClose();
+                            }}
+                            className="flex items-center justify-center gap-2 w-full bg-primary/20 border border-primary/40 text-primary font-pixel text-xs py-2.5 rounded hover:bg-primary/30 transition-all"
+                        >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Customize Car
+                        </button>
+                    )}
                     <a
                         href={car.url}
                         target="_blank"

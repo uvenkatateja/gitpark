@@ -1,0 +1,9 @@
+# Audio files directory structure
+
+## Required directories:
+- ambience/
+- engine/
+- ui/
+- music/
+
+## See AUDIO_SETUP_GUIDE.md for file recommendations
