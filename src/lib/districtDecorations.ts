@@ -72,13 +72,7 @@ const CURB_HEIGHT = 0.12;     // curb height
 export function generateDecorations(layout: DistrictLayout): ParkingDecoration[] {
     const decorations: ParkingDecoration[] = [];
 
-    console.log('[Decorations] Generating for layout:', {
-        sections: layout.sections.length,
-        bounds: layout.bounds,
-    });
-
     if (layout.sections.length === 0) {
-        console.warn('[Decorations] No sections to decorate!');
         return decorations;
     }
 
@@ -251,14 +245,6 @@ export function generateDecorations(layout: DistrictLayout): ParkingDecoration[]
         position: [centerX, 0, centerZ],
         rotation: 0,
         scale: [1, 1, 1],
-    });
-
-    console.log('[Decorations] Generated:', {
-        total: decorations.length,
-        byType: decorations.reduce((acc, d) => {
-            acc[d.type] = (acc[d.type] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>),
     });
 
     return decorations;

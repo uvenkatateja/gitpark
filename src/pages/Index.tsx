@@ -714,9 +714,12 @@ export default function DistrictPage() {
 
       {initialLoading && (
         <div className="absolute inset-0 z-50 bg-background flex flex-col items-center justify-center">
-          <div className="relative w-24 h-24 mb-6">
-            <Car className="w-12 h-12 text-primary animate-bounce absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          <div className="relative w-32 h-32 mb-6 flex items-center justify-center">
+            {/* Spinning circle border */}
             <div className="absolute inset-0 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            
+            {/* Car icon - centered and bouncing */}
+            <Car className="w-14 h-14 text-primary animate-bounce" />
           </div>
           <p className="font-pixel text-primary text-[10px] tracking-widest animate-pulse uppercase">
             Initiating District Data...

@@ -152,21 +152,8 @@ function SceneContent({
     const groundCX = (bounds.minX + bounds.maxX) / 2;
     const groundCZ = (bounds.minZ + bounds.maxZ) / 2;
 
-    // Debug: Log layout data
-    console.log('[DistrictScene] Rendering layout:', {
-        sections: layout.sections.length,
-        cars: layout.allCars.length,
-        zones: layout.zones.length,
-        bounds: layout.bounds,
-        center: layout.center,
-    });
-
     return (
         <>
-            {/* DEBUG HELPERS - Remove after fixing */}
-            <axesHelper args={[100]} />
-            <gridHelper args={[500, 50, '#ff0000', '#00ff00']} position={[0, 0.1, 0]} />
-            
             {/* ─── Lighting (theme-based) ────────────────────── */}
             <ambientLight 
                 intensity={theme.lighting.ambient.intensity} 
@@ -188,27 +175,28 @@ function SceneContent({
             {/* ─── Fog (theme-based) ─────────────────────────── */}
             <fog attach="fog" args={[theme.fog.color, theme.fog.near, theme.fog.far]} />
 
-            {/* ─── Global ground (infinite asphalt) ──────────── */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[groundCX, -0.03, groundCZ]}>
+            {/* ─── Global ground (natural grass texture) ──────────── */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[groundCX, -0.03, groundCZ]} receiveShadow>
                 <planeGeometry args={[groundW, groundD]} />
                 <meshStandardMaterial
-                    color={theme.ground.baseColor}
-                    emissive={theme.ground.emissive}
-                    emissiveIntensity={theme.ground.emissiveIntensity}
-                    roughness={0.98}
+                    color="#2d5016"
+                    roughness={0.95}
+                    metalness={0.0}
                 />
             </mesh>
 
-            {/* ─── Grid overlay (subtle lane markings) ────────── */}
-            <gridHelper
-                args={[
-                    Math.max(groundW, groundD),
-                    Math.floor(Math.max(groundW, groundD) / 4),
-                    theme.ground.gridColor1,
-                    theme.ground.gridColor2,
-                ]}
-                position={[groundCX, -0.01, groundCZ]}
-            />
+            {/* ─── Subtle grass pattern overlay ────────────────── */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[groundCX, -0.02, groundCZ]}>
+                <planeGeometry args={[groundW, groundD, 100, 100]} />
+                <meshStandardMaterial
+                    color="#3a6b1f"
+                    roughness={0.98}
+                    metalness={0.0}
+                    transparent
+                    opacity={0.3}
+                    wireframe={false}
+                />
+            </mesh>
 
             {/* ─── Parking Zones ─────────────────────────────── */}
             {layout.zones.map((zone) => (
@@ -219,38 +207,22 @@ function SceneContent({
             ))}
 
             {/* ─── Per-section elements ──────────────────────── */}
-            {layout.sections.map((section, idx) => {
-                console.log(`[DistrictScene] Section ${idx}:`, {
-                    username: section.username,
-                    center: section.center,
-                    width: section.width,
-                    depth: section.depth,
-                    cars: section.cars.length,
-                });
-                
-                return (
-                    <group key={section.username}>
-                        {/* DEBUG: Add a visible marker at section center */}
-                        <mesh position={[section.center[0], 2, section.center[2]]}>
-                            <boxGeometry args={[2, 4, 2]} />
-                            <meshStandardMaterial color="#ff00ff" emissive="#ff00ff" emissiveIntensity={1} />
-                        </mesh>
-                        
-                        <SectionGround section={section} theme={theme} onSectionClick={onSectionClick} />
-                        <SectionWall
-                            centerX={section.center[0]}
-                            centerZ={section.center[2]}
-                            width={section.width}
-                            depth={section.depth}
-                            theme={theme}
-                        />
-                        <LotSign
-                            username={section.username}
-                            position={[section.center[0], 0, section.center[2] + section.depth / 2 + 3]}
-                        />
-                    </group>
-                );
-            })}
+            {layout.sections.map((section) => (
+                <group key={section.username}>
+                    <SectionGround section={section} theme={theme} onSectionClick={onSectionClick} />
+                    <SectionWall
+                        centerX={section.center[0]}
+                        centerZ={section.center[2]}
+                        width={section.width}
+                        depth={section.depth}
+                        theme={theme}
+                    />
+                    <LotSign
+                        username={section.username}
+                        position={[section.center[0], 0, section.center[2] + section.depth / 2 + 3]}
+                    />
+                </group>
+            ))}
 
             {/* ─── World Decorations (instanced) ─────────────── */}
             <WorldEnvironment decorations={decorations} fogColor={theme.fog.color} />

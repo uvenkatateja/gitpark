@@ -3,6 +3,8 @@
  * Handles daily check-ins and streak management
  */
 
+import { getSupabase, isSupabaseConfigured } from './supabase';
+
 export interface CheckinResult {
   success: boolean;
   currentStreak: number;
@@ -25,34 +27,73 @@ export interface StreakLeaderboardEntry {
 
 /**
  * Perform daily check-in
+ * Calls Supabase RPC function directly
  */
 export async function performCheckin(parkerId: number): Promise<CheckinResult> {
-  const response = await fetch('/api/checkin', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ parkerId }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Check-in failed');
+  const supabase = getSupabase();
+  
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase not configured');
   }
 
-  return response.json();
+  try {
+    // Call the database function to handle check-in
+    const { data, error } = await supabase.rpc('handle_daily_checkin', {
+      p_parker_id: parkerId,
+    });
+
+    if (error) {
+      console.error('Check-in error:', error);
+      throw new Error(error.message || 'Check-in failed');
+    }
+
+    const result = data?.[0];
+    
+    if (!result) {
+      throw new Error('No result returned');
+    }
+
+    return {
+      success: result.success,
+      currentStreak: result.current_streak,
+      longestStreak: result.longest_streak,
+      isNewRecord: result.is_new_record,
+      checkinCount: result.checkin_count,
+      streakBroken: result.streak_broken,
+      wasFrozen: result.was_frozen,
+    };
+  } catch (error) {
+    console.error('Checkin error:', error);
+    throw error;
+  }
 }
 
 /**
  * Check if user can check in today
+ * Calls Supabase RPC function directly
  */
 export async function canCheckinToday(parkerId: number): Promise<boolean> {
-  const response = await fetch(`/api/checkin/status?parkerId=${parkerId}`);
+  const supabase = getSupabase();
   
-  if (!response.ok) {
+  if (!isSupabaseConfigured()) {
     return false;
   }
 
-  const data = await response.json();
-  return data.canCheckin;
+  try {
+    const { data, error } = await supabase.rpc('can_checkin_today', {
+      p_parker_id: parkerId,
+    });
+
+    if (error) {
+      console.error('Check status error:', error);
+      return false;
+    }
+
+    return data ?? false;
+  } catch (error) {
+    console.error('Can checkin error:', error);
+    return false;
+  }
 }
 
 /**
